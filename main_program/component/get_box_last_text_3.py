@@ -50,11 +50,11 @@ def last_text(docx_file):
 
     return box_last_text
 
-docx_file_path = r'C:\Users\takum\Documents\cheerjob_auto\test_0802.docx'
+docx_file_path = r'../input/240725_2.docx'
 box_last_text = last_text(docx_file_path)
 
 # テキストをファイルに書き出し
-output_file_path = r'C:\Users\takum\Documents\cheerjob_auto\box_last_text_output_3.txt'
+output_file_path = r'../output/box_last_text_output_3.txt'
 with open(output_file_path, 'w', encoding='utf-8') as f:
     for text in box_last_text:
         text = remove_duplicate_numbers_with_ret(text)

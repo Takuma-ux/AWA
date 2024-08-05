@@ -1,7 +1,7 @@
 from docx import Document
 
 # Wordファイルを読み込む
-doc = Document("./test_0802.docx")
+doc = Document("../input/test_0802.docx")
 
 # HTMLテーブルの開始
 html = '''<table style="table-layout: fixed; width: 100%; text-align: center; border-collapse: collapse;">
@@ -45,7 +45,7 @@ html += '''
 </table>'''
 
 # HTMLファイルとして保存
-with open("./output.html", "w", encoding="utf-8") as file:
+with open("../output/output.html", "w", encoding="utf-8") as file:
     file.write(html)
 
 print("HTMLファイルが正常に作成されました。")

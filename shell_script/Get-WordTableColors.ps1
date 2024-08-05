@@ -42,7 +42,8 @@ function Get-CellBackgroundColor {
 }
 
 # スクリプト実行部
-$ExcelFilePath = "C:\\Users\\takum\\Documents\\cheerjob_auto\\test_0802.docx"  # Excelファイルのパス
+$scriptDirectory = $PSScriptRoot
+$ExcelFilePath = Join-Path -Path $scriptDirectory -ChildPath "../input/test_0802.xlsx"
 $SheetName = "Sheet1"  # シート名
 $CellAddress = "A1"    # セルのアドレス
 
