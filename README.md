@@ -1,10 +1,10 @@
 # AWA
 
-#Automatic Writing Application
+## Automatic Writing Application
 
-#wordからhtmlを生成
+wordからhtmlを生成
 
-
+## フォルダ構成 
 /input（wordファイルをここに入れてください、githubにはあげていません）
 
 /main_program
@@ -19,7 +19,7 @@
 
 README.md（説明ファイル、コマンドが書いてある）
 
-
+## 実行コマンド
 Windows Powershellで以下を実行
 
 powershell -File shell_script/border-checker.ps1
