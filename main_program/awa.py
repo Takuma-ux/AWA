@@ -1,7 +1,9 @@
+import os
 import win32com.client
 import colorsys
 from component import get_title
-from component import get_box_last_text_3
+# from component import get_box_last_text_3
+from component import border_last_text
 
 def remove_duplicate_numbers_with_ret(text):
     # 連続する重複した数字を1回のみ表示する
@@ -32,6 +34,20 @@ def make_list_subtitle(text):
     result = [line.lstrip('・') for line in lines]
     print(result)
     return result
+
+def is_heading1(word_range):
+    # 指定されたWordのRangeが「見出し1」のスタイルかどうかを判定する関数。
+    # word_range.StyleがNoneでないことを確認
+    if word_range.Style is not None:
+        return word_range.Style.NameLocal == "見出し 1"
+    return False
+
+def is_heading2(word_range):
+    # 指定されたWordのRangeが「見出し2」のスタイルかどうかを判定する関数。
+    # word_range.StyleがNoneでないことを確認
+    if word_range.Style is not None:
+        return word_range.Style.NameLocal == "見出し 2"
+    return False
 
 def rgb_to_hsv(rgb):
     # RGB形式からHSV形式に変換する関数
@@ -67,8 +83,14 @@ def is_end(word_range):
         return False
 
 def extract_text_with_markup(docx_file):
-    # Wordファイルのパスを指定します
-    docx_file_path = r'../input/240416.docx'
+    script_directory = os.path.dirname(os.path.abspath(__file__))
+    docx_file_path = os.path.abspath(os.path.join(script_directory, '..', 'input', '240725_2.docx'))
+    input_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'borderedTextOutput.txt'))
+    print(f"Trying to open: {docx_file_path}")
+
+    # テスト用にファイルの存在確認
+    if not os.path.exists(docx_file_path):
+        raise FileNotFoundError(f"File not found: {docx_file_path}")
     # Wordファイルからテキストを抽出
     extracted_text = get_title.extract_text_from_docx(docx_file_path)
     # 数字で終わる行を抽出
@@ -78,7 +100,7 @@ def extract_text_with_markup(docx_file):
     # 末尾の数字を削除して各行のテキストを取り出す
     cleaned_text = [line.rstrip() for line in cleaned_text]
     #箱の最後のテキストを取り出す
-    box_last_text = get_box_last_text_3.last_text(docx_file_path)
+    box_last_text = border_last_text.remove_duplicate_numbers_with_ret(input_file_path)
     count = 0
     last_text_count = 0
     sub_title_count = 0
@@ -110,12 +132,20 @@ def extract_text_with_markup(docx_file):
     prev_is_highlighted = False
     # 直前の文字列が普通のテキストであるかどうかを示すフラグ
     prev_is_normal = False
+    # 直前の文字列が見出し1であるかどうかを示すフラグ
+    prev_is_h3 = False
+    # 直前の文字列が見出し2であるかどうかを示すフラグ
+    prev_is_h4 = False
     # 青色のテキストを一時的に保持する変数
     blue_text = ''
     # 太字のテキストを一時的に保持する変数
     bold_text = ''
     # 黄色のマーカーのテキストを一時的に保持する変数
     highlighted_text = ''
+    # 見出し1のテキストを一時的に保持する変数
+    h3_text = ''
+    # 見出し2のテキストを一時的に保持する変数
+    h4_text = ''
     # 普通のテキストを一時的に保持する変数
     normal_text = ''
 
@@ -123,6 +153,36 @@ def extract_text_with_markup(docx_file):
         # 各段落内のテキストを結合して1つの文にする
         paragraph_text = ''
         for word_range in range.Words:
+            if is_heading1(word_range):
+                normal_text = ''
+                bold_text = ''
+                prev_is_bold = False
+                prev_is_normal = False
+                if not prev_is_h3:
+                    paragraph_text += f'<h3>'
+                    prev_is_h3 = True
+                # 見出し1スタイルのテキストである場合の処理
+                h3_text += f"{word_range.Text.strip()}"
+            elif prev_is_h3:
+                h3_text += f"</h3>\r"
+                paragraph_text += h3_text
+                h3_text = ''
+                prev_is_h3 = False
+            if is_heading2(word_range):
+                normal_text = ''
+                bold_text = ''
+                prev_is_bold = False
+                prev_is_normal = False
+                if not prev_is_h4:
+                    paragraph_text += f'<h4>'
+                    prev_is_h4 = True
+                # 見出し1スタイルのテキストである場合の処理
+                h4_text += f"{word_range.Text.strip()}"
+            elif prev_is_h4:
+                h4_text += f"</h4>\r"
+                paragraph_text += h4_text
+                h4_text = ''
+                prev_is_h4 = False
             # 青色の開始
             if is_blue_color(word_range):
                 if not prev_is_blue:
@@ -146,39 +206,22 @@ def extract_text_with_markup(docx_file):
             # ハイライトの開始
             elif is_yellow_color(word_range):
                 bold_text=remove_duplicate_numbers_with_ret(bold_text)
-                # print(repr(bold_text))
-                if count!=length and ( bold_text==f"<p><strong>{cleaned_text[count]}" or bold_text==f"<strong>{cleaned_text[count]}\r" ):
-                    bold_text = f"\r<p>&nbsp;</p>\r\r<p>&nbsp;</p>\r\r<h3>{cleaned_text[count]}</h3>\r"
-                    paragraph_text += normal_text + bold_text
-                    bold_text =''
-                    normal_text = ''
-                    prev_is_bold = False
-                    prev_is_normal = True
-                    count = count + 1
-                elif sub_title_count!=sub_title_length and ( bold_text==f"<p><strong>{sub_title_list[sub_title_count]}" or f"<strong>{sub_title_list[sub_title_count]}" in bold_text ):
-                    bold_text = f"\r<p>&nbsp;</p>\r\r<h4>{sub_title_list[sub_title_count]}</h4>\r<p>{word_range}"
-                    paragraph_text += normal_text + bold_text
-                    bold_text =''
-                    normal_text = ''
-                    prev_is_bold = False
-                    prev_is_normal = True
-                    sub_title_count = sub_title_count +1
-                elif prev_is_bold:
+                paragraph_text += normal_text
+                normal_text = ''
+                if prev_is_bold:
                     bold_text += '</strong>'
-                    paragraph_text += normal_text+bold_text
+                    paragraph_text += bold_text
                     bold_text = ''
-                    normal_text = ''
                     prev_is_bold = False
                 if not prev_is_highlighted:
-
                     word_range.Text.replace('\r', '\n')
                     if not prev_is_normal:
-                        highlighted_text = f'<p><span class="marker">{word_range.Text}'
+                        highlighted_text = f'<p><span class="marker"><strong>{word_range.Text}'
                         prev_is_normal = True
                     else:
                         if prev_is_bold:
-                            bold_text
-                        highlighted_text = f'<span class="marker">{word_range.Text}'
+                            bold_text = ''
+                        highlighted_text = f'<span class="marker"><strong>{word_range.Text}'
                 else:
                     highlighted_text += word_range.Text
                 prev_is_highlighted = True
@@ -189,80 +232,56 @@ def extract_text_with_markup(docx_file):
                     sub_title_length=len(sub_title_list)
                     print("sub_title_length_highlight",sub_title_length)
                     sub_title_count = 0
-                    highlighted_text = highlighted_text.replace('<p>', '').replace('\r','<br />\r').replace('<span class="marker">', '<div style="background:#ffffff;border:1px solid #cccccc;padding:5px 10px;"><span class="marker">') + '</span></div>\r'
-                    highlighted_text = highlighted_text.replace('<br />\r</span></div>','\r</span></div>')
+                    highlighted_text = highlighted_text.replace('<p>', '').replace('\r','<br />\r').replace('<span class="marker"><strong>', '<div style="background:#ffffff;border:1px solid #cccccc;padding:5px 10px;"><span class="marker"><strong>') + '</strong></span></div>\r'
+                    highlighted_text = highlighted_text.replace('<br />\r</strong></span></div>','\r</strong></span></div>')
                     last_text_count += 1
                     # normal_text += f'<p>word_range.Text'
                     prev_is_normal = False
                 else:
                     word_range.Text.replace('\r', '\n')
                     if is_end(word_range):
-                        highlighted_text += f'</span></p>\r<p>{word_range.Text}'
+                        highlighted_text += f'</strong></span></p>\r<p>{word_range.Text}'
                         # prev_is_normal = False
                     else:
                         if '。'in f"{word_range.Text}":
-                            highlighted_text += f'</span>{word_range.Text}</p>\r<p>'
+                            highlighted_text += f'</strong></span>{word_range.Text}</p>\r<p>'
                         else:
-                            highlighted_text += f'</span>{word_range.Text}'
+                            highlighted_text += f'</strong></span>{word_range.Text}'
                 paragraph_text += highlighted_text
                 highlighted_text = ''
                 normal_text = ''
                 prev_is_highlighted = False
+                prev_is_bold = False
             # 太字の開始
             elif word_range.Bold:
                 bold_text=remove_duplicate_numbers_with_ret(bold_text)
-                if not prev_is_bold:
+                if not prev_is_bold:#おかしなところでprev_is_boldが続いてしまっているので、
                     if not prev_is_normal:
                         bold_text = f'<p><strong>{word_range.Text}'
                         prev_is_normal = True
                     else:
                         bold_text = f'<strong>{word_range.Text}'
                     prev_is_bold = True
-                elif count!=length and ( bold_text==f"<p><strong>{cleaned_text[count]}" or bold_text==f"<strong>{cleaned_text[count]}\r" ):
-                    bold_text = f"\r<p>&nbsp;</p>\r\r<p>&nbsp;</p>\r\r<h3>{cleaned_text[count]}</h3>\r"
-                    paragraph_text += normal_text + bold_text
-                    bold_text =''
-                    normal_text = f"<p>{word_range}"
-                    prev_is_bold = False
-                    prev_is_normal = True
-                    count = count + 1
-                # print("sub_title_list[sub_title_count]:",repr(sub_title_list[sub_title_count]))
-                elif sub_title_count!=sub_title_length and ( bold_text==f"<p><strong>{sub_title_list[sub_title_count]}" or f"<strong>{sub_title_list[sub_title_count]}" in bold_text ):
-                    bold_text = f"\r<p>&nbsp;</p>\r\r<h4>{sub_title_list[sub_title_count]}</h4>\r<p>{word_range}"
-                    paragraph_text += normal_text + bold_text
-                    bold_text =''
-                    normal_text = ''
-                    prev_is_bold = False
-                    prev_is_normal = True
-                    sub_title_count = sub_title_count +1
                 else:
                     bold_text += word_range.Text
-                    prev_is_bold = True
+                    # prev_is_bold = True
                 
             # 太字の終了
             elif prev_is_bold:
                 bold_text=remove_duplicate_numbers_with_ret(bold_text)
-                if count!=length and ( bold_text==f"<p><strong>{cleaned_text[count]}" or bold_text==f"<strong>{cleaned_text[count]}\r" ):
-                    bold_text = f"\r<p>&nbsp;</p>\r\r<p>&nbsp;</p>\r\r<h3>{cleaned_text[count]}</h3>\r"
-                    paragraph_text += normal_text + bold_text
-                    bold_text =''
-                    normal_text = f"<p>{word_range}"
+                if is_end(word_range):
+                    bold_text += f'</strong></p>\r<p>{word_range.Text}'
                     prev_is_bold = False
-                    prev_is_normal = True
-                    count = count + 1
+                    # prev_is_normal = False
                 else:
-                    if is_end(word_range):
-                        bold_text += f'</strong></p>\r<p>{word_range.Text}'
-                        # prev_is_normal = False
+                    if '。'in f"{word_range.Text}":
+                        bold_text += f'</strong>{word_range.Text}</p>\r<p>'
                     else:
-                        if '。'in f"{word_range.Text}":
-                            bold_text += f'</strong>{word_range.Text}</p>\r<p>'
-                        else:
-                            bold_text += f'</strong>{word_range.Text}'
-                        paragraph_text += normal_text+bold_text
-                        bold_text = ''
-                        normal_text = ''
-                        prev_is_bold = False
+                        bold_text += f'</strong>{word_range.Text}'#ここで<p></strong>が発生している
+                    paragraph_text += normal_text+bold_text
+                    bold_text = ''
+                    normal_text = ''
+                    prev_is_bold = False
             # マーカーや青色のテキスト以外のテキスト
             elif not is_end(word_range):
                 if not prev_is_normal:
@@ -286,7 +305,7 @@ def extract_text_with_markup(docx_file):
 
         # テキストが空でない場合のみ処理を行います
         if paragraph_text:
-            paragraph_text = paragraph_text.replace('<p>/</p>','').replace('<p></p>','').replace('<p>\r</p>','').replace('<p>\r','<p>').replace('','').replace('','').replace('','').replace('<p>▼関連記事はこちら</p>\r<p>','<p>▼関連記事はこちら<br />\r').replace('<p>/</p>','')
+            paragraph_text = paragraph_text.replace('<p>/</p>','').replace('<p></p>','').replace('<strong></strong>','').replace('<p>\r</p>','').replace('<p>\r','<p>').replace('','').replace('','').replace('','').replace('<p>▼関連記事はこちら</p>\r<p>','<p>▼関連記事はこちら<br />\r').replace('<p>/</p>','')
             paragraph_text = paragraph_text.replace('<br />\r</span></div>','\r</span></div>')
             # 文の末尾に数字がある場合、その数字を取り除く
             cleaned_text = remove_trailing_digits(paragraph_text)
@@ -299,16 +318,12 @@ def extract_text_with_markup(docx_file):
     word.Quit()
     return extracted_text
 
-# Wordファイルのパスを指定します
 script_directory = os.path.dirname(os.path.abspath(__file__))
-docx_file_path = os.path.join(script_directory, '../../input/240725_2.docx')
+docx_file_path = os.path.abspath(os.path.join(script_directory, '..', 'input', '240725_2.docx'))
 
-# テキストを抽出してHTMLマークアップを適用します
 extracted_text_with_markup = extract_text_with_markup(docx_file_path)
-# HTMLとして出力します
 html_output = ''.join(extracted_text_with_markup)
-# HTMLファイルに出力します
-output_file_path = r'../output/extracted_text_knowledge.html'
+output_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'extracted_text_knowledge.html'))
 with open(output_file_path, 'w', encoding='utf-8') as html_file:
     html_file.write(html_output)
 
