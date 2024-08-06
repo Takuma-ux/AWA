@@ -1,7 +1,9 @@
 # AWA
 
 #Automatic Writing Application
+
 #wordからhtmlを生成
+
 
 /input（wordファイルをここに入れてください、githubにはあげていません）
 /main_program
