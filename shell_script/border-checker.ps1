@@ -9,7 +9,7 @@ function Get-TextWithBorders {
 
         # スクリプトのディレクトリを基準にした相対パスを取得
         $scriptDirectory = $PSScriptRoot
-        $documentPath = Join-Path -Path $scriptDirectory -ChildPath "../input/240725_3.docx"
+        $documentPath = Join-Path -Path $scriptDirectory -ChildPath "..\input\240621.docx"
 
         # 入力ファイルが存在するか確認
         if (-not (Test-Path $documentPath)) {
