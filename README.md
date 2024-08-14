@@ -15,7 +15,7 @@ wordからhtmlを生成
 
 /shell_script（shellコマンドでないと動かせないプログラム）
 
-run_scripts_with_pause.ps1
+run_scripts_with_pause.ps1（pythonを一括で動かすshellスクリプト）
 
 README.md（説明ファイル、コマンドが書いてある）
 
