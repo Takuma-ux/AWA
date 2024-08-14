@@ -4,7 +4,7 @@
 
 wordからhtmlを生成
 
-## フォルダ構成 
+## フォルダ構成
 /input（wordファイルをここに入れてください、githubにはあげていません）
 
 /main_program
@@ -14,6 +14,8 @@ wordからhtmlを生成
 ┗awa.py（メインプログラム）
 
 /shell_script（shellコマンドでないと動かせないプログラム）
+
+run_scripts_with_pause.ps1
 
 README.md（説明ファイル、コマンドが書いてある）
 
