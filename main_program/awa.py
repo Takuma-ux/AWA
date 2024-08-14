@@ -1,11 +1,23 @@
-import os
-import win32com.client
+﻿import os
 import colorsys
 import win32com.client as win32
+import re
 from module.create_table_with_color import create_html_table
-from module import get_title
-# from component import get_box_last_text_3
 from module import border_last_text
+
+def remove_duplicate_english(text1, text2):
+    # 英数字部分を正規表現で検出
+    pattern = r'[a-zA-Z0-9]+'
+    
+    match1 = re.search(pattern, text1)
+    match2 = re.search(pattern, text2)
+    
+    if match1 and match2:
+        # 両方に英数字が存在し、かつそれが同じ場合に後者の英数字部分を削除
+        if match1.group() == match2.group():
+            text1 = text1.replace(match2.group(), '', 1)
+    
+    return text1
 
 def remove_duplicate_numbers_with_ret(text):
     # 連続する重複した数字を1回のみ表示する
@@ -84,10 +96,10 @@ def is_end(word_range):
     else:
         return False
     
-def check_tag(word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text, prev_is_normal, prev_is_blue, prev_is_bold, prev_is_highlighted, last_text_count):
+def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text, last_text_count, prev_is_normal, next_is_table):
     if is_blue_color(word_range):
         # 青色の開始
-        if not prev_is_blue:
+        if not is_blue_color(prev_word_range) or prev_word_range is None or is_end(prev_word_range):
             if not prev_is_normal:
                 blue_text = f'<p><a href="">{word_range.Text}'
                 prev_is_normal = True
@@ -95,171 +107,139 @@ def check_tag(word_range, paragraph_text, normal_text, bold_text, blue_text, hig
                 blue_text = f'<a href="">{word_range.Text}'
         else:
             blue_text += word_range.Text
-        prev_is_blue = True
-    # 青色の終了
-    elif prev_is_blue:
-        blue_text = blue_text.replace('\r','')
-        blue_text += f'</a></p>\r'#リンクの場合毎回閉じる
-        paragraph_text += blue_text
-        blue_text = ''
-        normal_text = ''
-        prev_is_normal = False
-        prev_is_blue = False
+        if prev_is_normal and next_word_range is not None and is_end(next_word_range) or next_is_table:
+            blue_text = blue_text.replace('\r','\n')
+            blue_text += f'</a></p>\r'#リンクの場合毎回閉じる
+            paragraph_text += normal_text + blue_text
+            blue_text = ''
+            normal_text = ''
+            prev_is_normal = False
+        elif prev_is_normal and next_word_range is not None and not is_blue_color(next_word_range):
+            blue_text = blue_text.replace('\r','\n')
+            blue_text += f'</a>'#リンクの場合毎回閉じる
+            paragraph_text += normal_text + blue_text
+            blue_text = ''
+            normal_text = ''
     # ハイライトの開始
     elif is_yellow_color(word_range):
         bold_text=remove_duplicate_numbers_with_ret(bold_text)
         paragraph_text += normal_text
         normal_text = ''
-        if prev_is_bold:
+        if (not is_end(prev_word_range) and prev_word_range.Bold) and not is_yellow_color(prev_word_range):
             bold_text += '</strong>'
             paragraph_text += bold_text
             bold_text = ''
-            prev_is_bold = False
-        if not prev_is_highlighted:
+        if is_end(prev_word_range) or (not is_yellow_color(prev_word_range)) or is_heading1(prev_word_range) or is_heading2(prev_word_range):#前回が太字でない場合
             word_range.Text.replace('\r', '\n')
             if not prev_is_normal:
                 highlighted_text = f'<p><span class="marker"><strong>{word_range.Text}'
                 prev_is_normal = True
             else:
-                if prev_is_bold:
+                if prev_word_range.Bold:
                     bold_text = ''
                 highlighted_text = f'<span class="marker"><strong>{word_range.Text}'
+            paragraph_text += highlighted_text
+            highlighted_text = ''
         else:
+            if is_end(word_range) and (next_word_range is not None and is_yellow_color(next_word_range)):
+                highlighted_text += f'</strong></span><br />'
             highlighted_text += word_range.Text
-        prev_is_highlighted = True
-    # ハイライトの終了
-    elif prev_is_highlighted:
-        if f'{box_last_text[last_text_count]}' in highlighted_text:#{word_range.Text}がない
-            sub_title_list = make_list_subtitle(highlighted_text)
-            sub_title_length=len(sub_title_list)
-            print("sub_title_length_highlight",sub_title_length)
-            sub_title_count = 0
-            highlighted_text = highlighted_text.replace('<p>', '').replace('\r','<br />\r').replace('<span class="marker"><strong>', '<div style="background:#ffffff;border:1px solid #cccccc;padding:5px 10px;"><span class="marker"><strong>') + '</strong></span></div>\r'
-            highlighted_text = highlighted_text.replace('<br />\r</strong></span></div>','\r</strong></span></div>')
-            last_text_count += 1
-            # normal_text += f'<p>word_range.Text'
-            prev_is_normal = False
-        else:
-            word_range.Text.replace('\r', '\n')
-            if is_end(word_range):
-                highlighted_text += f'</strong></span></p>\r<p>{word_range.Text}'
-                # prev_is_normal = False
+            paragraph_text += highlighted_text
+            highlighted_text = ''
+        if next_word_range is not None and not is_yellow_color(next_word_range):
+            if f'{box_last_text[last_text_count]}' in highlighted_text:#{word_range.Text}がない
+                sub_title_list = make_list_subtitle(highlighted_text)
+                sub_title_length=len(sub_title_list)
+                print("sub_title_length_highlight",sub_title_length)
+                highlighted_text = highlighted_text.replace('<p>', '').replace('\r','<br />\r').replace('<span class="marker"><strong>', '<div style="background:#ffffff;border:1px solid #cccccc;padding:5px 10px;"><span class="marker"><strong>') + '</strong></span></div>\r'
+                highlighted_text = highlighted_text.replace('<br />\r</strong></span></div>','\r</strong></span></div>')
+                last_text_count += 1
+                prev_is_normal = False
             else:
-                if '。'in f"{word_range.Text}":
-                    highlighted_text += f'</strong></span>{word_range.Text}</p>\r<p>'
+                word_range.Text.replace('\r', '\n')
+                if is_end(next_word_range):
+                    highlighted_text += f'</strong></span></p>\r'
+                    prev_is_normal = False
                 else:
-                    highlighted_text += f'</strong></span>{word_range.Text}'
-        paragraph_text += highlighted_text
-        highlighted_text = ''
-        normal_text = ''
-        prev_is_highlighted = False
-        prev_is_bold = False
+                    if '。'in f"{word_range.Text}":
+                        highlighted_text += f'</strong></span>{word_range.Text}</p>\r'
+                        prev_is_normal = False
+                    else:
+                        highlighted_text += f'{word_range.Text}'
+            paragraph_text += highlighted_text
+            highlighted_text = ''
+            normal_text = ''
     # 太字の開始
     elif word_range.Bold:
         bold_text=remove_duplicate_numbers_with_ret(bold_text)
-        if not prev_is_bold:#おかしなところでprev_is_boldが続いてしまっているので、
-            if not prev_is_normal:
-                bold_text = f'<p><strong>{word_range.Text}'
-                prev_is_normal = True
+        if prev_word_range is not None:
+            if is_end(prev_word_range) or not prev_word_range.Bold or is_yellow_color(prev_word_range) or is_heading1(prev_word_range) or is_heading2(prev_word_range):#前回が太字でない場合
+                if not prev_is_normal or  is_end(prev_word_range):#テキストが始まってもない場合
+                    if is_end(next_word_range) or is_end(word_range):
+                        bold_text = f'<p><strong>{word_range.Text}</strong></p>'
+                    else:
+                        bold_text = f'<p><strong>{word_range.Text}'
+                        prev_is_normal = True
+                else:
+                    bold_text = f'<strong>{word_range.Text}'
             else:
-                bold_text = f'<strong>{word_range.Text}'
-            prev_is_bold = True
-        else:
-            bold_text += word_range.Text
-            # prev_is_bold = True
-        
-    # 太字の終了
-    elif prev_is_bold:
-        bold_text=remove_duplicate_numbers_with_ret(bold_text)
-        if is_end(word_range):
-            bold_text += f'</strong></p>\r<p>{word_range.Text}'
-            prev_is_bold = False
-            # prev_is_normal = False
-        else:
-            if '。'in f"{word_range.Text}":
-                bold_text += f'</strong>{word_range.Text}</p>\r<p>'
-            else:
-                bold_text += f'</strong>{word_range.Text}'#ここで<p></strong>が発生している
-            paragraph_text += normal_text+bold_text
+                bold_text += word_range.Text
+            if prev_is_normal and ((next_word_range is not None and not next_word_range.Bold) and not is_heading1(next_word_range) and not is_heading2(next_word_range) or is_end(next_word_range)):
+                bold_text=remove_duplicate_numbers_with_ret(bold_text)
+                if (is_end(next_word_range)) or is_heading1(next_word_range) or is_heading2(next_word_range):
+                    bold_text += f'</strong></p>\r'
+                    prev_is_normal = False
+                else:
+                    bold_text += f'</strong>'#ここで<p></strong>が発生している
+            paragraph_text += normal_text + bold_text
             bold_text = ''
             normal_text = ''
-            prev_is_bold = False
     # マーカーや青色のテキスト以外のテキスト
-    elif not is_end(word_range):
+    elif next_word_range is not None and is_end(next_word_range) or '。'in f"{word_range.Text}":
         if not prev_is_normal:
-            paragraph_text += f'<p>{word_range.Text}'
+            paragraph_text += f'<p>{word_range.Text}</p>'
         else:
-            if '。' in word_range.Text:
-                normal_text += word_range.Text + '</p>\r<p>' 
-            else:
-                normal_text += word_range.Text #２回目のループからここにずっと来ている
-        prev_is_normal = True
-    elif prev_is_normal: #ここにも来ない
+            normal_text += word_range.Text + '</p>\r'
+            paragraph_text += normal_text
+        normal_text = ''
+        prev_is_normal = False
+    elif prev_is_normal: #次で終わりでないが、テキストはすでに始まっている場合
         if f'<p>▼関連記事はこちら' in normal_text:
             normal_text=f'<p>▼関連記事はこちら<br />\r'
         else:
-            normal_text += f'</p>{word_range.Text}'
+            normal_text += f'{word_range.Text}'
             paragraph_text += normal_text
             normal_text = ''
-            prev_is_normal = False
+        # prev_is_normal = True
+    else:#テキストが始まっていない場合
+        if not is_end(word_range):
+            normal_text += f'<p>{word_range.Text}'
+            paragraph_text += normal_text
+            normal_text = ''
+            prev_is_normal = True
     # else:
     #     paragraph_text += f'{word_range.Text}'#なぜか数十個の\rが表示される,本来is_end()で引っかかるはず
-    return paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text, prev_is_normal, prev_is_blue, prev_is_bold, prev_is_highlighted, last_text_count
+    return paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text, last_text_count,prev_is_normal
 
 def extract_text_with_markup(docx_file):
     script_directory = os.path.dirname(os.path.abspath(__file__))
-    docx_file_path = os.path.abspath(os.path.join(script_directory, '..', 'input', '240725_3.docx'))
-    input_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'borderedTextOutput.txt'))
+    docx_file_path = os.path.abspath(os.path.join(script_directory, '..', 'input', '240621.docx'))
+    input_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'borderedTextOutput_06.txt'))
     print(f"Trying to open: {docx_file_path}")
 
     # テスト用にファイルの存在確認
     if not os.path.exists(docx_file_path):
         raise FileNotFoundError(f"File not found: {docx_file_path}")
-    # Wordファイルからテキストを抽出
-    extracted_text = get_title.extract_text_from_docx(docx_file_path)
-    # 数字で終わる行を抽出
-    lines_ending_with_number = get_title.extract_lines_ending_with_number(extracted_text)
-    # 末尾の数字を削除して各行のテキストを取り出す
-    cleaned_text = get_title.remove_numbers_from_end(lines_ending_with_number)
-    # 末尾の数字を削除して各行のテキストを取り出す
-    cleaned_text = [line.rstrip() for line in cleaned_text]
     #箱の最後のテキストを取り出す
     box_last_text = border_last_text.remove_duplicate_numbers_with_ret(input_file_path)
-    count = 0
     last_text_count = 0
-    sub_title_count = 0
-    sub_title_length = 0
-    # print("start")
-    # # 結果を表示
 
-    for line in cleaned_text:
-        print(repr(line))
-    # print("end")
-
-    # print(repr(f"<p><strong>{cleaned_text[3]}\r"))
-
-    length=len(cleaned_text)
-    print("length:",len(cleaned_text))
-
-    word = win32com.client.DispatchEx("Word.Application")
+    word = win32.DispatchEx("Word.Application")
     word.Visible = False  # Wordアプリケーションを非表示にする
 
     doc = word.Documents.Open(docx_file)
     extracted_text = []
-    sub_title_list = []
 
-    # 直前の文字列が青色のテキストであるかどうかを示すフラグ
-    prev_is_blue = False
-    # 直前の文字列が太字のテキストであるかどうかを示すフラグ
-    prev_is_bold = False
-    # 直前の文字列が黄色のマーカーであるかどうかを示すフラグ
-    prev_is_highlighted = False
-    # 直前の文字列が普通のテキストであるかどうかを示すフラグ
-    prev_is_normal = False
-    # 直前の文字列が見出し1であるかどうかを示すフラグ
-    prev_is_h3 = False
-    # 直前の文字列が見出し2であるかどうかを示すフラグ
-    prev_is_h4 = False
     # 青色のテキストを一時的に保持する変数
     blue_text = ''
     # 太字のテキストを一時的に保持する変数
@@ -272,134 +252,71 @@ def extract_text_with_markup(docx_file):
     h4_text = ''
     # 普通のテキストを一時的に保持する変数
     normal_text = ''
+    prev_word_range = None
+    next_word_range = None
+    prev_is_normal = False
+    next_is_table = False
     in_table = False
+    wdInTable = 12
 
     for range in doc.StoryRanges:
         # 各段落内のテキストを結合して1つの文にする
+        word_ranges = list(range.Words)  # Wordsをリストに変換
         paragraph_text = ''
-        for word_range in range.Words:
-            if not word_range.Information(win32.constants.wdWithInTable):
-                in_table = False
+        for i, word_range in enumerate(word_ranges):
+            next_word_range = None
+            prev_word_range = word_ranges[i - 1] if i > 0 else None
+            # word_text = word_range.Text
+            if (i + 1 < len(word_ranges)):
+                next_word_range = word_ranges[i + 1]
+            if next_word_range is not None:
+                next_is_table = next_word_range.Information(wdInTable)
+                # next_word_text = next_word_range.Text
+                # modified_word_text = remove_duplicate_english(word_text, next_word_text)
+                # if modified_word_text == '':
+                #     word_range.Text = ''
+            else:
+                next_is_table = False
+            if not word_range.Information(wdInTable):#表のテキストでない
+                in_table = False#表の初めのテキストでない
                 if is_heading1(word_range):
                     normal_text = ''
                     bold_text = ''
-                    prev_is_bold = False
-                    prev_is_normal = False
-                    if not prev_is_h3:
+                    if not is_heading1(prev_word_range):
                         paragraph_text += f'<h3>'
-                        prev_is_h3 = True
                     # 見出し1スタイルのテキストである場合の処理
                     h3_text += f"{word_range.Text.strip()}"
-                elif prev_is_h3:
-                    h3_text += f"</h3>\r"
-                    paragraph_text += h3_text
-                    h3_text = ''
-                    prev_is_h3 = False
-                    paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text, prev_is_normal, prev_is_blue, prev_is_bold, prev_is_highlighted, last_text_count = check_tag(
-        word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text, prev_is_normal, prev_is_blue, prev_is_bold, prev_is_highlighted, last_text_count)
-                elif is_heading2(word_range):
-                    normal_text = ''
-                    bold_text = ''
-                    prev_is_bold = False
-                    prev_is_normal = False
-                    if not prev_is_h4:
-                        paragraph_text += f'<h4>'
-                        prev_is_h4 = True
-                    # 見出し1スタイルのテキストである場合の処理
-                    h4_text += f"{word_range.Text.strip()}"
-                elif prev_is_h4:
-                    h4_text += f"</h4>\r"
-                    paragraph_text += h4_text
-                    h4_text = ''
-                    prev_is_h4 = False
-                    paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text, prev_is_normal, prev_is_blue, prev_is_bold, prev_is_highlighted, last_text_count = check_tag(
-        word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text, prev_is_normal, prev_is_blue, prev_is_bold, prev_is_highlighted, last_text_count)
-                else:
-                    paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text, prev_is_normal, prev_is_blue, prev_is_bold, prev_is_highlighted, last_text_count = check_tag(
-        word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text, prev_is_normal, prev_is_blue, prev_is_bold, prev_is_highlighted, last_text_count)
-            else:
-                if not in_table:
-                    # テーブルの開始を検出した場合
-                    if prev_is_h3:
+                    if next_word_range is not None and not is_heading1(next_word_range) or next_is_table:
                         h3_text += f"</h3>\r"
                         paragraph_text += h3_text
                         h3_text = ''
-                        prev_is_h3 = False
-                    elif prev_is_h4:
+                        paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text, last_text_count, prev_is_normal = check_tag(
+            prev_word_range, word_range, next_word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text,last_text_count, prev_is_normal, next_is_table)
+                elif is_heading2(word_range):
+                    normal_text = ''
+                    bold_text = ''
+                    if not is_heading2(prev_word_range):
+                        paragraph_text += f'<h4>'
+                    # 見出し1スタイルのテキストである場合の処理
+                    h4_text += f"{word_range.Text.strip()}"
+                    if next_word_range is not None and not is_heading2(next_word_range) or next_is_table:
                         h4_text += f"</h4>\r"
                         paragraph_text += h4_text
                         h4_text = ''
-                        prev_is_h4 = False
-                                    # 青色の終了
-                    elif prev_is_blue:
-                        blue_text = blue_text.replace('\r','')
-                        blue_text += f'</a></p>\r'#リンクの場合毎回閉じる
-                        paragraph_text += blue_text
-                        blue_text = ''
-                        normal_text = ''
-                        prev_is_normal = False
-                        prev_is_blue = False
-                    # ハイライトの終了
-                    elif prev_is_highlighted:
-                        if f'{box_last_text[last_text_count]}' in highlighted_text:#{word_range.Text}がない
-                            sub_title_list = make_list_subtitle(highlighted_text)
-                            sub_title_length=len(sub_title_list)
-                            print("sub_title_length_highlight",sub_title_length)
-                            sub_title_count = 0
-                            highlighted_text = highlighted_text.replace('<p>', '').replace('\r','<br />\r').replace('<span class="marker"><strong>', '<div style="background:#ffffff;border:1px solid #cccccc;padding:5px 10px;"><span class="marker"><strong>') + '</strong></span></div>\r'
-                            highlighted_text = highlighted_text.replace('<br />\r</strong></span></div>','\r</strong></span></div>')
-                            last_text_count += 1
-                            # normal_text += f'<p>word_range.Text'
-                            prev_is_normal = False
-                        else:
-                            word_range.Text.replace('\r', '\n')
-                            if is_end(word_range):
-                                highlighted_text += f'</strong></span></p>\r<p>{word_range.Text}'
-                                # prev_is_normal = False
-                            else:
-                                if '。'in f"{word_range.Text}":
-                                    highlighted_text += f'</strong></span>{word_range.Text}</p>\r<p>'
-                                else:
-                                    highlighted_text += f'</strong></span>{word_range.Text}'
-                        paragraph_text += highlighted_text
-                        highlighted_text = ''
-                        normal_text = ''
-                        prev_is_highlighted = False
-                        prev_is_bold = False
-                    # 太字の終了
-                    elif prev_is_bold:
-                        bold_text=remove_duplicate_numbers_with_ret(bold_text)
-                        if is_end(word_range):
-                            bold_text += f'</strong></p>\r<p>{word_range.Text}'
-                            prev_is_bold = False
-                            # prev_is_normal = False
-                        else:
-                            if '。'in f"{word_range.Text}":
-                                bold_text += f'</strong>{word_range.Text}</p>\r<p>'
-                            else:
-                                bold_text += f'</strong></p>\r'#ここで<p></strong>が発生している済→「<p><strong>【実務経験の対象となるケースの一例】</strong>職場」の修正中
-                            paragraph_text += normal_text+bold_text
-                            bold_text = ''
-                            normal_text = ''
-                            prev_is_bold = False
-                            prev_is_normal = False
-                    elif prev_is_normal: #ここにも来ない
-                        if f'<p>▼関連記事はこちら' in normal_text:
-                            normal_text=f'<p>▼関連記事はこちら<br />\r'
-                        else:
-                            normal_text += f'</p>1{word_range.Text}'
-                            paragraph_text += normal_text
-                            normal_text = ''
-                            prev_is_normal = False
-
+                        paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text,last_text_count, prev_is_normal = check_tag(
+            prev_word_range, word_range, next_word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text, last_text_count, prev_is_normal, next_is_table)
+                else:
+                    paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text,last_text_count, prev_is_normal = check_tag(
+            prev_word_range, word_range, next_word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text, last_text_count, prev_is_normal, next_is_table)
+            else:
+                if not in_table:
                     table = word_range.Tables(1)
                     paragraph_text += create_html_table(table)
                     in_table = True
                 
         # テキストが空でない場合のみ処理を行います
         if paragraph_text:
-            paragraph_text = paragraph_text.replace('<p>/</p>','').replace('<p></p>','').replace('<strong></strong>','').replace('<p>\r</p>','').replace('<p>\r','<p>').replace('','').replace('','').replace('','').replace('<p>▼関連記事はこちら</p>\r<p>','<p>▼関連記事はこちら<br />\r').replace('<p>/</p>','')
-            paragraph_text = paragraph_text.replace('<br />\r</span></div>','\r</span></div>')
+            paragraph_text = paragraph_text.replace('<p>/</p>','').replace('<strong>\r</strong>','').replace('<p></p>','').replace('<strong></strong>','').replace('</strong><strong>','').replace('<p>\r</p>','').replace('<p>\r','<p>').replace('','').replace('','').replace('','').replace('<p>▼関連記事はこちら</p>\r<p>','<p>▼関連記事はこちら<br />\r').replace('<p>/</p>','').replace('<br />\r</span></div>','\r</span></div>').replace('<p> </p>','').replace('</a></p>\r<p><a href="">',',</a><br />\r<a href="">').replace('</a></p>\n<p><a href="">',',</a><br />\r<a href="">').replace('</a></p>\n<p>',',</a><br />\r').replace('▼関連記事はコチラ</p>\r<p><a href="">','▼関連記事はコチラ<br />\r<a href="">').replace('▼関連記事はコチラ</p>\n<p><a href="">','▼関連記事はコチラ<br />\n<a href="">')
             # 文の末尾に数字がある場合、その数字を取り除く
             cleaned_text = remove_trailing_digits(paragraph_text)
             # 連続する数字を1回のみ表示する
@@ -412,11 +329,11 @@ def extract_text_with_markup(docx_file):
     return extracted_text
 
 script_directory = os.path.dirname(os.path.abspath(__file__))
-docx_file_path = os.path.abspath(os.path.join(script_directory, '..', 'input', '240725_3.docx'))
+docx_file_path = os.path.abspath(os.path.join(script_directory, '..', 'input', '240621.docx'))
 
 extracted_text_with_markup = extract_text_with_markup(docx_file_path)
 html_output = ''.join(extracted_text_with_markup)
-output_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'extracted_text_knowledge_9999.html'))
+output_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'extracted_text_knowledge_06_re_10_3.html'))
 with open(output_file_path, 'w', encoding='utf-8') as html_file:
     html_file.write(html_output)
 
