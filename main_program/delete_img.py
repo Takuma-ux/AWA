@@ -1,7 +1,24 @@
 from docx import Document
 import os
 
-def remove_images_from_docx(file_path):
+def save_image(image_part, output_folder, image_number):
+    # 画像の拡張子を取得
+    content_type = image_part.content_type
+    ext = content_type.split('/')[-1]
+
+    # 画像データを取得
+    image_data = image_part.blob
+
+    # 保存するファイル名
+    file_name = f'image_{image_number}.{ext}'
+    file_path = os.path.join(output_folder, file_name)
+
+    # 画像を保存
+    with open(file_path, 'wb') as f:
+        f.write(image_data)
+    print(f"画像を保存しました: {file_path}")
+
+def remove_and_save_images_from_docx(file_path, output_folder):
     # ドキュメントを読み込む
     try:
         doc = Document(file_path)
@@ -9,6 +26,17 @@ def remove_images_from_docx(file_path):
         print(f"ファイルを開く際にエラーが発生しました: {e}")
         return
     
+    # 画像を保存するフォルダを作成
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    
+    # 画像を抽出して保存
+    image_number = 1
+    for rel in doc.part.rels.values():
+        if "image" in rel.target_ref:
+            save_image(rel.target_part, output_folder, image_number)
+            image_number += 1
+
     # 各段落内の画像を削除
     for para in doc.paragraphs:
         for run in para.runs:
@@ -38,5 +66,5 @@ def remove_images_from_docx(file_path):
 
 # 使用
 file_path = r'C:\Users\nichi\OneDrive\デスクトップ\study\auto\240422【校了】登録販売者_役に立たない.docx'
-remove_images_from_docx(file_path)
-
+output_folder = r'C:\Users\nichi\OneDrive\デスクトップ\study\auto\extracted_images'
+remove_and_save_images_from_docx(file_path, output_folder)
