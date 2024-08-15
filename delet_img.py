@@ -98,3 +98,4 @@ def process_word_file(file_path, output_folder):
 file_path = r'C:\Users\nichi\OneDrive\デスクトップ\study\auto\240422【校了】登録販売者_役に立たない.docx'
 output_folder = r'C:\Users\nichi\OneDrive\デスクトップ\study\auto\extracted_images'
 process_word_file(file_path, output_folder)
+
