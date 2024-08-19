@@ -22,8 +22,8 @@ README.md（説明ファイル、コマンドが書いてある）
 ## 実行コマンド
 Windows Powershellで以下を実行
 
-python .\main_program\module\border-checker_07.py
+python .\main_program\module\border-checker.py
 
-python .\main_program\module\border_last_text_07.py
+python .\main_program\module\border_last_text.py
 
 python .\main_program\awa.py
