@@ -4,6 +4,68 @@ import win32com.client as win32
 import re
 from module.create_table_with_color import create_html_table
 from module import border_last_text
+from module import border_text
+def remove_digits_from_word_range(word_range):
+    word_text_without_digits = ''
+    if word_range is None:
+        return word_text_without_digits
+
+    try:
+        # 現在のword_rangeのテキストを取得
+        word_text = word_range.Text.strip()
+
+        # 数字部分を削除するための正規表現
+        word_text_without_digits = re.sub(r'\d+', '', word_text)
+
+        return word_text_without_digits
+
+    except Exception as e:
+        print(f"Error removing digits from word range: {e}")
+        return word_text_without_digits
+def check_prev_digits_in_word_range(word_range, prev_word_range):
+    if word_range is None or prev_word_range is None:
+        return False  # Noneが渡された場合は、Falseを返す
+
+    prev_text = prev_word_range.Text.strip()
+    prev_digits = ''.join(filter(str.isdigit, prev_text))
+
+    if prev_digits:
+        try:
+            # 現在のword_rangeのテキストを取得
+            word_text = word_range.Text.strip()
+
+            # prev_digitsがword_textに含まれているか確認
+            if prev_digits in word_text:
+                return True  # prev_digitsがword_textに含まれている場合はTrueを返す
+            else:
+                return False  # 含まれていない場合はFalseを返す
+
+        except Exception as e:
+            print(f"Error checking word range: {e}")
+            return False  # エラーが発生した場合はFalseを返す
+
+    return False  # prev_digitsが存在しない場合はFalseを返す
+def modify_word_range_text(word_range, prev_word_range):
+    if prev_word_range is not None:
+        prev_text = prev_word_range.Text.strip()
+
+        # 数字の羅列を見つけるための正規表現パターン
+        number_pattern = r'\d+'
+
+        # prev_word_range から数字の羅列をすべて抽出
+        prev_numbers = re.findall(number_pattern, prev_text)
+
+        # それぞれの数字の羅列が現在のテキストに含まれている場合は削除
+        text = word_range.Text
+        for number in prev_numbers:
+            if number in text:
+                print(f"number:{number},text:{text}")
+                # 数字の羅列を削除
+                text = text.replace(number, '')
+                # word_rangeのテキストを更新
+                word_range.Text = text
+    
+    return word_range
 
 def format_text_block_to_html(text_block):
     """テキストブロックをHTMLに変換する関数。各行が<p>タグ内の文字列と一致する場合にのみ処理を実行"""
@@ -85,13 +147,16 @@ def make_list_subtitle(text):
     return result
 
 def is_heading1(word_range):
-    # 指定されたWordのRangeが「見出し1」のスタイルかどうかを判定する関数。
-    # word_range.StyleがNoneでないことを確認
+    if word_range is None:
+        return False  # NoneであればFalseを返す
     if word_range.Style is not None:
+        # スタイルが見出し1であるかどうかのチェック
         return word_range.Style.NameLocal == "見出し 1"
     return False
 
 def is_heading2(word_range):
+    if word_range is None:
+        return False  # NoneであればFalseを返す
     # 指定されたWordのRangeが「見出し2」のスタイルかどうかを判定する関数。
     # word_range.StyleがNoneでないことを確認
     if word_range.Style is not None:
@@ -131,16 +196,16 @@ def is_end(word_range):
     else:
         return False
     
-def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text, last_text_count, prev_is_normal, next_is_table):
+def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_text, box_count,  box_last_text, last_text_count, prev_is_normal, next_is_table, smart_text):
     if is_blue_color(word_range):
         # 青色の開始
-        bold_text=remove_duplicate_numbers_with_ret(bold_text)
+        # bold_text=remove_duplicate_numbers_with_ret(bold_text)
         paragraph_text += normal_text
         normal_text = ''
         if is_end(prev_word_range) or (not is_blue_color(prev_word_range) or (is_heading1(prev_word_range) or is_heading2(prev_word_range))):#前回が太字でない場合
-            word_range.Text.replace('\r', '\n')
+            smart_text.replace('\r', '\n')
             if not prev_is_normal:
-                blue_text += f'<p><a href="">{word_range.Text}'
+                blue_text += f'<p><a href="">{smart_text}'
                 prev_is_normal = True
             else:
                 if (not is_end(prev_word_range) and prev_word_range.Bold) and not is_blue_color(prev_word_range):
@@ -149,13 +214,13 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
                     bold_text = ''
                 if prev_word_range.Bold:
                     bold_text = ''
-                blue_text += f'<a href="">{word_range.Text}'
+                blue_text += f'<a href="">{smart_text}'
         else:
             if prev_is_normal and is_end(word_range) and is_blue_color(next_word_range):
                 blue_text += f'</a><br />'
-            blue_text += word_range.Text
+            blue_text += smart_text
         if prev_is_normal and not is_blue_color(next_word_range) or next_is_table:
-            if last_text_count < len(box_last_text) and f'{box_last_text[last_text_count]}' in blue_text:#{word_range.Text}がない
+            if last_text_count < len(box_last_text) and f'{box_last_text[last_text_count]}' in blue_text:#{smart_text}がない
                 blue_text = blue_text.replace('<p>', '<div style="background:#ffffff;border:1px solid #cccccc;padding:5px 10px;">') + '</a></div>\r'
                 blue_text = blue_text.replace('<br />\r</a></div>','\r</a></div>').replace('<a href="">\r<a href="">','<a href="">').replace('<a href="">\n<a href="">','<a href="">')
                 if '・' in blue_text:
@@ -163,22 +228,22 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
                 last_text_count += 1
                 prev_is_normal = False
             else:
-                word_range.Text.replace('\r', '\n')
+                smart_text.replace('\r', '\n')
                 if is_end(next_word_range):
                     blue_text += f'</a></p>\r'
                     prev_is_normal = False
                 else:
-                    if '。'in f"{word_range.Text}":
-                        blue_text += f'</a>{word_range.Text}</p>\r'
+                    if '。'in f"{smart_text}":
+                        blue_text += f'</a>{smart_text}</p>\r'
                         prev_is_normal = False
                     else:
-                        blue_text += f'{word_range.Text}'
+                        blue_text += f'</a>'
             paragraph_text += blue_text
             blue_text = ''
             normal_text = ''
     # ハイライトの開始
     elif is_yellow_color(word_range):
-        bold_text=remove_duplicate_numbers_with_ret(bold_text)
+        # bold_text=remove_duplicate_numbers_with_ret(bold_text)
         paragraph_text += normal_text
         normal_text = ''
         if (not is_end(prev_word_range) and prev_word_range.Bold) and not is_yellow_color(prev_word_range):
@@ -186,96 +251,147 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
             paragraph_text += bold_text
             bold_text = ''
         if is_end(prev_word_range) or (not is_yellow_color(prev_word_range)) or is_heading1(prev_word_range) or is_heading2(prev_word_range):#前回が太字でない場合
-            word_range.Text.replace('\r', '\n')
+            smart_text.replace('\r', '\n')
             if not prev_is_normal:
-                highlighted_text += f'<p><span class="marker"><strong>{word_range.Text}'
+                highlighted_text += f'<p><span class="marker"><strong>{smart_text}'
                 prev_is_normal = True
             else:
                 if prev_word_range.Bold:
                     bold_text = ''
-                highlighted_text += f'<span class="marker"><strong>{word_range.Text}'
+                highlighted_text += f'<span class="marker"><strong>{smart_text}'
         else:
-            if is_end(word_range) and is_yellow_color(next_word_range):
-                highlighted_text += f'</strong></span><br />'
-            highlighted_text += word_range.Text
-        if not is_yellow_color(next_word_range) or next_is_table:
-            if last_text_count < len(box_last_text) and f'{box_last_text[last_text_count]}' in highlighted_text:#{word_range.Text}がない
-                highlighted_text = highlighted_text.replace('<p>', '<div style="background:#ffffff;border:1px solid #cccccc;padding:5px 10px;">') + '</strong></span></div>\r'
+            highlighted_text += smart_text
+
+        if prev_is_normal and ((next_word_range is not None and not is_yellow_color(next_word_range)) and not is_heading1(next_word_range) and not is_heading2(next_word_range) or is_end(next_word_range)):
+            highlighted_text = highlighted_text.replace('<span class="marker"><strong></strong></span>','').replace('</strong></span><span class="marker"><strong>','')
+            # print(highlighted_text)
+            if last_text_count < len(box_last_text) and f'{box_last_text[last_text_count]}' in highlighted_text:#{smart_text}がない
+                highlighted_text = highlighted_text.replace('<p>', '<div style="background:#ffffff;border:1px solid #cccccc;padding:5px 10px;">') + '</strong></div>\r'
                 highlighted_text = highlighted_text.replace('<br />\r</strong></span></div>','\r</strong></span></div>')
                 if '・' in highlighted_text:
                     highlighted_text = highlighted_text.replace('<span class="marker"><strong>・','<li><span class="marker"><strong>').replace('</strong></span>','</strong></span></li>').replace('<br />','')
+                highlighted_text = highlighted_text.replace('<br />','<br />\r')
                 last_text_count += 1
+                box_count = 0
                 prev_is_normal = False
+                # print(highlighted_text)
+                paragraph_text += normal_text + highlighted_text
+                highlighted_text = ''
+                normal_text = ''
             else:
-                word_range.Text.replace('\r', '\n')
-                if is_end(next_word_range):
-                    highlighted_text += f'</strong></span></p>\r'
-                    prev_is_normal = False
-                else:
-                    if '。'in f"{word_range.Text}":
-                        highlighted_text += f'</strong></span>{word_range.Text}</p>\r'
-                        prev_is_normal = False
+                if is_end(next_word_range) or is_heading1(next_word_range) or is_heading2(next_word_range):
+                    if last_text_count < len(box_text) and box_count < len(box_text[last_text_count]) and f'{box_text[last_text_count][box_count]}' in highlighted_text:
+                        highlighted_text += f'</strong></span><br />\r'
+                        box_count += 1
                     else:
-                        highlighted_text += f'{word_range.Text}'
-            paragraph_text += highlighted_text
-            highlighted_text = ''
-            normal_text = ''
+                        highlighted_text += f'</strong></span></p>\r'
+                        prev_is_normal = False
+                        paragraph_text += normal_text + highlighted_text
+                        highlighted_text = ''
+                        normal_text = ''
+                else:
+                    highlighted_text += f'</strong></span>'#ここで<p></strong>が発生している
+                    paragraph_text += normal_text + highlighted_text
+                    highlighted_text = ''
+                    normal_text = ''
     # 太字の開始
     elif word_range.Bold:
-        bold_text=remove_duplicate_numbers_with_ret(bold_text)
+        paragraph_text += normal_text
+        normal_text = ''
+        # bold_text=remove_duplicate_numbers_with_ret(bold_text)
         if prev_word_range is not None:
             if is_end(prev_word_range) or not prev_word_range.Bold or is_yellow_color(prev_word_range) or is_heading1(prev_word_range) or is_heading2(prev_word_range):#前回が太字でない場合
-                if not prev_is_normal or  is_end(prev_word_range):#テキストが始まってもない場合
+                if box_count == 0:
+                    bold_text = ''
+                if not prev_is_normal:#テキストが始まってもない場合
                     if is_end(next_word_range) or is_end(word_range):
-                        bold_text = f'<p><strong>{word_range.Text}</strong></p>'
+                        bold_text += f'<p><strong>{smart_text}</strong></p>'
+                        paragraph_text += normal_text + bold_text
+                        bold_text = ''
+                        normal_text = ''
                     else:
-                        bold_text = f'<p><strong>{word_range.Text}'
+                        bold_text += f'<p><strong>{smart_text}'
                         prev_is_normal = True
                 else:
-                    bold_text = f'<strong>{word_range.Text}'
+                    bold_text += f'<strong>{smart_text}'
             else:
-                bold_text += word_range.Text
+                bold_text += smart_text
             if prev_is_normal and ((next_word_range is not None and not next_word_range.Bold) and not is_heading1(next_word_range) and not is_heading2(next_word_range) or is_end(next_word_range)):
-                bold_text=remove_duplicate_numbers_with_ret(bold_text)
-                if (is_end(next_word_range)) or is_heading1(next_word_range) or is_heading2(next_word_range):
-                    bold_text += f'</strong></p>\r'
+                bold_text = bold_text.replace('<strong></strong>','').replace('</strong><strong>','')
+                # print(bold_text)
+                if last_text_count < len(box_last_text) and f'{box_last_text[last_text_count]}' in bold_text:#{smart_text}がない
+                    bold_text = bold_text.replace('<p>', '<div style="background:#ffffff;border:1px solid #cccccc;padding:5px 10px;">') + '</strong></div>\r'
+                    bold_text = bold_text.replace('<br />\r</strong></div>','\r</strong></div>')
+                    if '・' in bold_text:
+                        bold_text = bold_text.replace('<strong>・','<li><strong>').replace('</strong>','</strong></li>').replace('<br />','')
+                    bold_text = bold_text.replace('<br />','<br />\r').replace('\r\r','\r')
+                    last_text_count += 1
+                    box_count = 0
                     prev_is_normal = False
+                    # print(bold_text)
+                    paragraph_text += normal_text + bold_text
+                    bold_text = ''
+                    normal_text = ''
                 else:
-                    bold_text += f'</strong>'#ここで<p></strong>が発生している
-            paragraph_text += normal_text + bold_text
-            bold_text = ''
-            normal_text = ''
+                    if is_end(next_word_range) or is_heading1(next_word_range) or is_heading2(next_word_range):
+                        if last_text_count < len(box_text) and box_count < len(box_text[last_text_count]) and f'{box_text[last_text_count][box_count]}' in bold_text:
+                            bold_text += f'</strong><br />\r'
+                            box_count += 1
+                        else:
+                            bold_text += f'</strong></p>\r'
+                            prev_is_normal = False
+                            paragraph_text += normal_text + bold_text
+                            bold_text = ''
+                            normal_text = ''
+                    else:
+                        bold_text += f'</strong>'#ここで<p></strong>が発生している
+                        paragraph_text += normal_text + bold_text
+                        bold_text = ''
+                        normal_text = ''
     # マーカーや青色のテキスト以外のテキスト
-    elif next_word_range is not None and is_end(next_word_range) or '。'in f"{word_range.Text}":
+    elif next_word_range is not None and is_end(next_word_range)  or '。'in f"{smart_text}":
+        normal_text += f'{smart_text}'
         if not prev_is_normal:
-            paragraph_text += f'<p>{word_range.Text}</p>'
+            paragraph_text += f'<p>{smart_text}</p>'
         else:
-            normal_text += word_range.Text + '</p>\r'
-            paragraph_text += normal_text
-        normal_text = ''
-        prev_is_normal = False
+            if last_text_count < len(box_last_text) and f'{box_last_text[last_text_count]}' in normal_text:#{smart_text}がない
+                    normal_text = normal_text.replace('\n','\r')
+                    normal_text = normal_text.replace('<p>', '<div style="background:#ffffff;border:1px solid #cccccc;padding:5px 10px;">') + '</div>\r'
+                    normal_text = normal_text.replace('<br />\r</div>','\r</div>')
+                    if '・' in normal_text:
+                        normal_text = normal_text.replace('\r・','\r<li>').replace('<br />','</li>').replace('\r</div>','</li>\r</div>').replace('<div style="background:#ffffff;border:1px solid #cccccc;padding:5px 10px;">・','<div style="background:#ffffff;border:1px solid #cccccc;padding:5px 10px;">\r<li>')
+                    last_text_count += 1
+                    box_count = 0
+                    prev_is_normal = False
+                    print(normal_text)
+                    paragraph_text += normal_text
+                    normal_text = ''
+            elif last_text_count < len(box_text) and box_count < len(box_text[last_text_count]) and f'{box_text[last_text_count][box_count]}' in normal_text:
+                normal_text += f'<br />'
+                box_count += 1
+            else:
+                normal_text += f'</p>\r'
+                paragraph_text += normal_text
+                normal_text = ''
+                prev_is_normal = False
     elif prev_is_normal: #次で終わりでないが、テキストはすでに始まっている場合
         if f'<p>▼関連記事はこちら' in normal_text:
             normal_text=f'<p>▼関連記事はこちら<br />\r'
         else:
-            normal_text += f'{word_range.Text}'
-            paragraph_text += normal_text
-            normal_text = ''
+            normal_text += f'{smart_text}'
         # prev_is_normal = True
     else:#テキストが始まっていない場合
         if not is_end(word_range):
-            normal_text += f'<p>{word_range.Text}'
-            paragraph_text += normal_text
-            normal_text = ''
+            normal_text += f'<p>{smart_text}'
             prev_is_normal = True
     # else:
-    #     paragraph_text += f'{word_range.Text}'#なぜか数十個の\rが表示される,本来is_end()で引っかかるはず
-    return paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text, last_text_count,prev_is_normal
+    #     paragraph_text += f'{smart_text}'#なぜか数十個の\rが表示される,本来is_end()で引っかかるはず
+    return paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_text, box_count, box_last_text, last_text_count,prev_is_normal
 
 def extract_text_with_markup(docx_file, html_tables):
     script_directory = os.path.dirname(os.path.abspath(__file__))
-    docx_file_path = os.path.abspath(os.path.join(script_directory, '..', 'input', '240725_3.docx'))
-    input_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'get_border_text_07.html'))
+    docx_file_path = os.path.abspath(os.path.join(script_directory, '..', 'input', '240821_1.docx'))
+    input_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'get_border_text_08_1.html'))
     print(f"Trying to open: {docx_file_path}")
 
     # テスト用にファイルの存在確認
@@ -286,9 +402,13 @@ def extract_text_with_markup(docx_file, html_tables):
     if not os.path.exists(input_file_path):
         raise FileNotFoundError(f"File not found: {input_file_path}")
     
+    box_text = border_text.txt_to_2d_array(input_file_path)
+    # print(f"box_text[0][0]:{box_text[0][0]}")
+    box_count = 0
+
     #箱の最後のテキストを取り出す
     box_last_text = border_last_text.process_text_file(input_file_path)
-    print(f"box_last_text[0]:{box_last_text[0]}")
+    # print(f"box_last_text[0]:{box_last_text[0]}")
     last_text_count = 0
     print(1)
 
@@ -310,9 +430,11 @@ def extract_text_with_markup(docx_file, html_tables):
     h4_text = ''
     # 普通のテキストを一時的に保持する変数
     normal_text = ''
+    smart_text = ''
     prev_word_range = None
     next_word_range = None
     prev_is_normal = False
+    word_is_duplicate = False
     next_is_table = False
     in_table = False
     wdInTable = 12
@@ -326,8 +448,8 @@ def extract_text_with_markup(docx_file, html_tables):
         paragraph_text = ''
         for i, word_range in enumerate(word_ranges):
             next_word_range = None
-            prev_word_range = word_ranges[i - 1] if i > 0 else None
             # word_text = word_range.Text
+            prev_word_range = word_ranges[i - 1] if i > 0 else None
             if (i + 1 < len(word_ranges)):
                 next_word_range = word_ranges[i + 1]
             if next_word_range is not None:
@@ -336,6 +458,11 @@ def extract_text_with_markup(docx_file, html_tables):
                 next_is_table = False
             if not word_range.Information(wdInTable):#表のテキストでない
                 in_table = False#表の初めのテキストでない
+                word_is_duplicate = check_prev_digits_in_word_range(word_range, prev_word_range)
+                if word_is_duplicate:
+                    smart_text = remove_digits_from_word_range(word_range)
+                else:
+                    smart_text = f'{word_range.Text}'
                 if is_heading1(word_range):
                     normal_text = ''
                     bold_text = ''
@@ -347,8 +474,8 @@ def extract_text_with_markup(docx_file, html_tables):
                         h3_text += f"</h3>\r"
                         paragraph_text += h3_text
                         h3_text = ''
-                        paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text, last_text_count, prev_is_normal = check_tag(
-            prev_word_range, word_range, next_word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text,last_text_count, prev_is_normal, next_is_table)
+                        paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_text, box_count, box_last_text, last_text_count, prev_is_normal = check_tag(
+            prev_word_range, word_range, next_word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_text, box_count, box_last_text,last_text_count, prev_is_normal, next_is_table, smart_text)
                 elif is_heading2(word_range):
                     normal_text = ''
                     bold_text = ''
@@ -360,11 +487,11 @@ def extract_text_with_markup(docx_file, html_tables):
                         h4_text += f"</h4>\r"
                         paragraph_text += h4_text
                         h4_text = ''
-                        paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text,last_text_count, prev_is_normal = check_tag(
-            prev_word_range, word_range, next_word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text, last_text_count, prev_is_normal, next_is_table)
+                        paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_text, box_count, box_last_text,last_text_count, prev_is_normal = check_tag(
+            prev_word_range, word_range, next_word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_text, box_count, box_last_text, last_text_count, prev_is_normal, next_is_table, smart_text)
                 else:
-                    paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text,last_text_count, prev_is_normal = check_tag(
-            prev_word_range, word_range, next_word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_last_text, last_text_count, prev_is_normal, next_is_table)
+                    paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_text, box_count, box_last_text,last_text_count, prev_is_normal = check_tag(
+            prev_word_range, word_range, next_word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text, box_text, box_count, box_last_text, last_text_count, prev_is_normal, next_is_table, smart_text)
             else:
                 if not in_table:
                     print(2)
@@ -382,17 +509,18 @@ def extract_text_with_markup(docx_file, html_tables):
             # 文の末尾に数字がある場合、その数字を取り除く
             cleaned_text = remove_trailing_digits(paragraph_text)
             # 連続する数字を1回のみ表示する
-            cleaned_text = remove_duplicate_numbers_with_ret(cleaned_text)
+            # cleaned_text = remove_duplicate_numbers_with_ret(cleaned_text)
             if cleaned_text:
                 extracted_text.append(cleaned_text)
+        break
 
     doc.Close()
     word.Quit()
     return extracted_text
 
 script_directory = os.path.dirname(os.path.abspath(__file__))
-docx_file_path = os.path.abspath(os.path.join(script_directory, '..', 'input', '240725_3.docx'))
-html_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'combined_tables.html'))
+docx_file_path = os.path.abspath(os.path.join(script_directory, '..', 'input', '240821_1.docx'))
+html_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'combined_tables_08_1.html'))
 
 
 # HTMLファイルからテーブルを読み込み、リストとして管理
@@ -403,7 +531,7 @@ extracted_text_with_markup = extract_text_with_markup(docx_file_path, html_table
 
 print(99)
 html_output = ''.join(extracted_text_with_markup)
-output_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'extracted_text_knowledge_07_re_10_6.html'))
+output_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'extracted_text_knowledge_08_1n.html'))
 with open(output_file_path, 'w', encoding='utf-8') as html_file:
     html_file.write(html_output)
 print(100)
