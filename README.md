@@ -22,8 +22,10 @@ README.md（説明ファイル、コマンドが書いてある）
 ## 実行コマンド
 Windows Powershellで以下を実行
 
+python .\main_program\module\get_hyper_links.py
+
 python .\main_program\module\border-checker.py
 
-python .\main_program\module\border_last_text.py
+python .\main_program\module\create_tables.py
 
 python .\main_program\awa.py
