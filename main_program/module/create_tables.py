@@ -5,14 +5,14 @@ import colorsys  # HSV変換のために使用
 
 # 色範囲の定義
 orange_rgb_range = {
-    'r': (245, 255),  # Rの範囲
-    'g': (220, 235),  # Gの範囲
-    'b': (205, 225)   # Bの範囲
+    'r': (245, 260),  # Rの範囲
+    'g': (210, 240),  # Gの範囲
+    'b': (175, 225)   # Bの範囲
 }
 
 fill_blue_rgb_range = {
-    'r': (178, 188),  # Rの範囲
-    'g': (207, 217),  # Gの範囲
+    'r': (178, 205),  # Rの範囲
+    'g': (207, 220),  # Gの範囲
     'b': (234, 244)   # Bの範囲
 }
 
@@ -64,6 +64,17 @@ def get_cell_background_color(cell):
 
     return None  # 色が特定の範囲にない場合
 
+def get_text_alignment_style(cell):
+    """セル内のテキストのアライメントに応じてCSSスタイルを返す"""
+    for paragraph in cell.paragraphs:
+        alignment = paragraph.alignment
+        print(f"Alignment: {alignment}")  # デバッグ用にアライメント値を出力
+        if alignment == 1:  # 中央寄せ
+            return "text-align: center;"
+        elif alignment is None or alignment == 0 or alignment == 3:  # 左寄せまたは両端揃え
+            return "text-align: left;"
+    return ""  # デフォルトのアライメント（指定なし）
+
 def create_html_tables(docx_path):
     doc = Document(docx_path)
     combined_html = ""
@@ -80,7 +91,6 @@ def create_html_tables(docx_path):
             for j, cell in enumerate(row.cells):
                 # セルのテキストを取得
                 cell_text = cell.text
-
                 cell_text = cell_text.replace('\n','<br>\n')
                 
                 # セルの背景色を取得
@@ -90,9 +100,12 @@ def create_html_tables(docx_path):
                 has_blue_text = any(is_blue_color(run) for run in cell.paragraphs[0].runs)
                 is_bold = any(run.bold for run in cell.paragraphs[0].runs)
                 
+                # テキストのアライメントを取得
+                alignment_style = get_text_alignment_style(cell)
+                
                 # <th>タグか<td>タグを使用
                 tag = "th" if i == 0 else "td"
-                html += f'<{tag} style="background-color: {background_color or ("#ffe8d1" if i == 0 else "#ffffff")};">'
+                html += f'<{tag} style="background-color: {background_color or "#ffffff"}; {alignment_style}">'
                 
                 # 太字の場合は <strong> タグを使用
                 if is_bold:
@@ -123,11 +136,14 @@ def create_html_tables(docx_path):
 
 # 相対パスを設定
 script_directory = os.path.dirname(os.path.abspath(__file__))
-input_file_path = os.path.abspath(os.path.join(script_directory, '..','..', 'input', '240725_3.docx'))
-output_file_path = os.path.abspath(os.path.join(script_directory, '..','..', 'output', 'combined_tables.html'))
+input_file_path = os.path.abspath(os.path.join(script_directory, '..','..', 'input', '240527_2.docx'))
+output_file_path = os.path.abspath(os.path.join(script_directory, '..','..', 'output', 'combined_tables_05_2.html'))
 
 # すべてのテーブルを1つのHTMLにまとめて保存
 combined_html = create_html_tables(input_file_path)
 with open(output_file_path, "w", encoding="utf-8") as file:
-    file.write(combined_html)
+    if combined_html:
+        file.write(combined_html)
+    else:
+        file.write("")  # 空のファイルを作成
 print(f"HTMLファイルが正常に作成されました: {output_file_path}")
