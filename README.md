@@ -19,9 +19,12 @@ run_scripts_with_pause.ps1（pythonを一括で動かすshellスクリプト）
 
 README.md（説明ファイル、コマンドが書いてある）
 
+## 注意事項
+・Wordファイルを開いていると、エラーが発生します。タスクマネージャーで閉じていることを確認してください
+
+・Wordのスタイル見出し1・2のテキストを設定していないとエラーが発生することがあります
+
 ## 実行コマンド
 Windows Powershellで以下を実行
-
-（※Wordファイルを開いていると、エラーが発生します。タスクマネージャーで閉じていることを確認してください）
 
 powershell -ExecutionPolicy Bypass -File ./run_scripts.ps1
