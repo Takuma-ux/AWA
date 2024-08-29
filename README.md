@@ -13,9 +13,7 @@ wordからhtmlを生成
 
 ┗awa.py（メインプログラム）
 
-/shell_script（shellコマンドでないと動かせないプログラム）
-
-run_scripts_with_pause.ps1（pythonを一括で動かすshellスクリプト）
+run_scripts.ps1（pythonを一括で動かすshellスクリプト）
 
 README.md（説明ファイル、コマンドが書いてある）
 
