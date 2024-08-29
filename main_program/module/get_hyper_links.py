@@ -28,6 +28,7 @@ def save_hyperlink_texts_to_file(hyperlink_texts, output_file_path):
         if hyperlink_texts:
             for text in hyperlink_texts:
                 file.write(f"{text}\n")
+            print(f"罫線付き段落のテキストがファイルに保存されました: {output_file_path}")
         else:
             file.write("")  # 空のファイルを作成
 
