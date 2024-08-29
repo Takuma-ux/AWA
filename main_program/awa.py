@@ -3,7 +3,6 @@ import colorsys
 import win32com.client as win32
 import re
 import difflib
-from module.create_table_with_color import create_html_table
 from module import border_last_text
 from module import border_text
 from module import get_hyper_link_text
@@ -546,12 +545,12 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
 
 def extract_text_with_markup(docx_file, html_tables):
     script_directory = os.path.dirname(os.path.abspath(__file__))
-    docx_file_path = os.path.abspath(os.path.join(script_directory, '..', 'input', '240527_2.docx'))
-    input_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'get_border_text_05_2.html'))
-    hyper_links_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'hyperlinks_text_output_05_2.txt'))
-    links_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'comments_output_05_2.txt'))
-    heading1_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'heading5_1.txt'))
-    heading2_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'heading5_2.txt'))
+    docx_file_path = os.path.abspath(os.path.join(script_directory, '..', 'input', '240418【校了】自己分析_看護師_転職成功_without_toc_final_no_images.docx'))
+    input_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'get_border_text_04_2.html'))
+    hyper_links_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'hyperlinks_text_output_04_2.txt'))
+    links_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'comments_output_04_2.txt'))
+    heading1_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'heading4_1.txt'))
+    heading2_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'heading4_2.txt'))
 
     print(f"Trying to open: {docx_file_path}")
 
@@ -712,8 +711,8 @@ def extract_text_with_markup(docx_file, html_tables):
     return extracted_text
 
 script_directory = os.path.dirname(os.path.abspath(__file__))
-docx_file_path = os.path.abspath(os.path.join(script_directory, '..', 'input', '240527_2.docx'))
-html_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'combined_tables_05_2.html'))
+docx_file_path = os.path.abspath(os.path.join(script_directory, '..', 'input', '240418【校了】自己分析_看護師_転職成功_without_toc_final_no_images.docx'))
+html_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'combined_tables_04_2.html'))
 
 
 # HTMLファイルからテーブルを読み込み、リストとして管理
@@ -724,7 +723,7 @@ extracted_text_with_markup = extract_text_with_markup(docx_file_path, html_table
 
 print(99)
 html_output = ''.join(extracted_text_with_markup)
-output_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'extracted_text_knowledge_05_2s.html'))
+output_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'extracted_text_knowledge_04_2s.html'))
 with open(output_file_path, 'w', encoding='utf-8') as html_file:
     html_file.write(html_output)
 print(100)

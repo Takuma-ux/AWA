@@ -33,8 +33,8 @@ def save_hyperlink_texts_to_file(hyperlink_texts, output_file_path):
 
 # 使用例
 script_directory = os.path.dirname(os.path.abspath(__file__))
-input_file_path = os.path.abspath(os.path.join(script_directory, '..', '..', 'input', '240527_2.docx'))
-output_file_path = os.path.abspath(os.path.join(script_directory, '..', '..', 'output', 'hyperlinks_text_output_05_2.txt'))
+input_file_path = os.path.abspath(os.path.join(script_directory, '..', '..', 'input', '240418【校了】自己分析_看護師_転職成功_without_toc_final_no_images.docx'))
+output_file_path = os.path.abspath(os.path.join(script_directory, '..', '..', 'output', 'hyperlinks_text_output_04_2.txt'))
 
 hyperlink_texts = extract_hyperlink_texts(input_file_path)
 save_hyperlink_texts_to_file(hyperlink_texts, output_file_path)
