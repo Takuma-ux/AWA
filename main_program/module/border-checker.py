@@ -37,7 +37,7 @@ def get_text_with_borders():
 
             # 表に含まれている段落をスキップ
             if para.Range.Information(wdWithInTable):
-                print(f"スキップされました (表の段落 {paragraph_index}): '{para.Range.Text.strip()}'")
+                # print(f"スキップされました (表の段落 {paragraph_index}): '{para.Range.Text.strip()}'")
                 paragraph_index += 1
                 continue
 
@@ -51,11 +51,11 @@ def get_text_with_borders():
             clean_text = para.Range.Text.strip()
 
             # デバッグ用: 各段落のインデックスとテキストを出力
-            print(f"段落 {paragraph_index} 内容: '{clean_text}'")
+            # print(f"段落 {paragraph_index} 内容: '{clean_text}'")
 
             # 段落が "目次" の場合はスキップ
             if clean_text.startswith("目次"):
-                print(f"スキップされました (段落 {paragraph_index}): '{clean_text}'")
+                # print(f"スキップされました (段落 {paragraph_index}): '{clean_text}'")
                 paragraph_index += 1
                 continue
 
@@ -100,9 +100,11 @@ output_directory = os.path.dirname(output_file_path)
 if not os.path.exists(output_directory):
     os.makedirs(output_directory)
 
-# ファイルに出力
-if bordered_text_content:
-    with open(output_file_path, 'w', encoding='utf-8') as f:
-        f.write(bordered_text_content)
+with open(output_file_path, 'w', encoding='utf-8') as f:
+    # ファイルに出力
+    if bordered_text_content:
+            f.write(bordered_text_content)
+    else:
+        f.write("")  # 空のファイルを作成
 
 print(f"罫線付き段落のテキストがファイルに保存されました: {output_file_path}")

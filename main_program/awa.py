@@ -315,12 +315,12 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
                                 blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="{link}">{comment[0]}')
                             else:
                                 blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="{comment[1]}" target="_blank">{comment[0]}')
-                            print(f"Found match for1: {comment_text}")
+                            # print(f"Found match for1: {comment_text}")
                         else:
                             head1_flag=False
                             for i, heading1 in enumerate(heading1_array):
                                 if heading1 in comment[1]:
-                                    print("見出し1へのリンクを発見")
+                                    # print("見出し1へのリンクを発見")
                                     blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="#heading{i+1}">{comment[0]}')
                                     head1_flag=True
                                     break
@@ -328,9 +328,9 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
                                 for row, sublist in enumerate(heading2_array):
                                     for col, heading2 in enumerate(sublist):
                                         if heading2 in comment[1]:
-                                            print("見出し2へのリンクを発見")
+                                            # print("見出し2へのリンクを発見")
                                             blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="#heading{row+1}_{col+1}">{comment[0]}')
-                            print(f"Found match for2: {comment_text}")
+                            # print(f"Found match for2: {comment_text}")
                         break
             else:
                 blue_text += smart_text
@@ -363,7 +363,7 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
                                 blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="{link}">{comment[0]}')
                             else:
                                 blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="{comment[1]}" target="_blank">{comment[0]}')
-                            print(f"Found match for3: {comment_text}")
+                            # print(f"Found match for3: {comment_text}")
                         else:
                             head1_flag=False
                             for i, heading1 in enumerate(heading1_array):
@@ -371,7 +371,7 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
                                 comment_link_1=comment[1]
                                 cleaned_comment_link_1 = remove_surrounding_text(comment_link_1)
                                 if is_similar(heading1, cleaned_comment_link_1):
-                                    print("見出し1へのリンクを発見")
+                                    # print("見出し1へのリンクを発見")
                                     blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="#heading{i+1}">{comment[0]}')
                                     head1_flag=True
                                     break
@@ -380,10 +380,10 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
                                     for col, heading2 in enumerate(sublist):
                                         # print(f"heading2:{heading2},comment[1]:{comment[1]}")
                                         if heading2 in comment[1]:
-                                            print("見出し2へのリンクを発見")
+                                            # print("見出し2へのリンクを発見")
                                             blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="#heading{row+1}_{col+1}">{comment[0]}')
                                             break
-                            print(f"Found match for4: {comment_text}")
+                            # print(f"Found match for4: {comment_text}")
                         break
                 if is_end(next_word_range):
                     blue_text += f'</a></p>\r'
@@ -518,7 +518,7 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
                     last_text_count += 1
                     box_count = 0
                     prev_is_normal = False
-                    print(normal_text)
+                    # print(normal_text)
                     paragraph_text += normal_text
                     normal_text = ''
             elif last_text_count < len(box_text) and box_count < len(box_text[last_text_count]) and f'{box_text[last_text_count][box_count]}' in normal_text:
@@ -579,13 +579,13 @@ def extract_text_with_markup(docx_file, html_tables):
     comments_list = []
     comments_list = load_comments_from_file(links_file_path)
     links_count = 0
-    print(f"comments_list[0][0]:{comments_list[0][0]}")
+    # print(f"comments_list[0][0]:{comments_list[0][0]}")
 
     heading1_array = []
     heading2_array = []
     heading1_array, heading2_array = load_headings(heading1_file_path, heading2_file_path)
-    print(f"heading1_array[0]:{heading1_array[0]}")
-    print(f"heading2_array[0]:{heading1_array[0]}")
+    # print(f"heading1_array[0]:{heading1_array[0]}")
+    # print(f"heading2_array[0]:{heading1_array[0]}")
 
 
     # print(f"box_last_text[0]:{box_last_text[0]}")
@@ -689,7 +689,7 @@ def extract_text_with_markup(docx_file, html_tables):
                 
         # テキストが空でない場合のみ処理を行います
         if paragraph_text:
-            paragraph_text = paragraph_text.replace('<p>/</p>','').replace('<strong>\r</strong>','').replace('<p></p>','').replace('<strong></strong>','').replace('</strong><strong>','').replace('<p>\r</p>','').replace('<p>\r','<p>').replace('','').replace('','').replace('','').replace('<p>▼関連記事はこちら</p>\r<p>','<p>▼関連記事はこちら<br />\r').replace('<p>/</p>','').replace('<br />\r</span></div>','\r</span></div>').replace('<p> </p>','').replace('</a></p>\r<p><a href="">','</a><br />\r<a href="">').replace('</a></p>\n<p><a href="">',',</a><br />\r<a href="">').replace('</a></p>\n<p>',',</a><br />\r').replace('▼関連記事はコチラ</p>\r<p><a href="">','▼関連記事はコチラ<br />\r<a href="">').replace('▼関連記事はコチラ</p>\n<p><a href="">','▼関連記事はコチラ<br />\n<a href="">').replace('<a href="">\r</a>','').replace('\r</a>','</a>').replace('\n</a>','</a>').replace('<h4','<p>&nbsp;</p>\r\r<h4').replace('<h3','<p>&nbsp;</p>\r\r<p>&nbsp;</p>\r\r<h3')
+            paragraph_text = paragraph_text.replace('<p>/</p>','').replace('<strong>\r</strong>','').replace('<p></p>','').replace('<strong></strong>','').replace('</strong><strong>','').replace('<p>\r</p>','').replace('<p>\r','<p>').replace('','').replace('','').replace('','').replace('<p>▼関連記事はこちら</p>\r<p>','<p>▼関連記事はこちら<br />\r').replace('<p>/</p>','').replace('<br />\r</span></div>','\r</span></div>').replace('<p> </p>','').replace('</a></p>\r<p><a','</a><br />\r<a').replace('</a></p>\n<p><a',',</a><br />\r<a').replace('</a></p>\n<p>',',</a><br />\r').replace('▼関連記事はコチラ</p>\r<p><a','▼関連記事はコチラ<br />\r<a').replace('▼関連記事はコチラ</p>\n<p><a>','▼関連記事はコチラ<br />\n<a').replace('<a href="">\r</a>','').replace('\r</a>','</a>').replace('\n</a>','</a>').replace('<h4','<p>&nbsp;</p>\r\r<h4').replace('<h3','<p>&nbsp;</p>\r\r<p>&nbsp;</p>\r\r<h3')
             paragraph_text += '<p>&nbsp;</p>\r\r<p>&nbsp;</p>\r\r<center><a href="https://AAA.com/entry?utm_source=column&amp;utm_medium=Direct&amp;utm_campaign=column24-3-2"><img alt="entry" src="https://materialfile.s3-ap-northeast-1.amazonaws.com/b5dc427af93f6ae792c78ba9273009ec/article/677/2005cheerjob_bnr500_180.png" style="width: 500px; height: 180px;" /></a></center>\r\r<p>&nbsp;</p>\r\r<center><a href="https://AAA.com/firsttime.html?utm_source=column&amp;utm_medium=Direct&amp;utm_campaign=column24-3-2"><font color="#f08300" size="4">転職サポートとは？</font> </a></center>\r\r<p>&nbsp;</p>'
             while (hyper_text_count < len(hyper_link_text)):
                 for comment in comments_list:
@@ -723,7 +723,7 @@ extracted_text_with_markup = extract_text_with_markup(docx_file_path, html_table
 
 print(99)
 html_output = ''.join(extracted_text_with_markup)
-output_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'extracted_text_knowledge_04_2s.html'))
+output_file_path = os.path.abspath(os.path.join(script_directory, '..', 'output', 'extracted_text_04_2s.html'))
 with open(output_file_path, 'w', encoding='utf-8') as html_file:
     html_file.write(html_output)
 print(100)
