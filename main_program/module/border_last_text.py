@@ -57,7 +57,7 @@ def process_text_file(input_file_path):
 
 # 使用例
 script_directory = os.path.dirname(os.path.abspath(__file__))
-input_file_path = os.path.abspath(os.path.join(script_directory, '..','..', 'output', 'get_border_text_08_1.html'))
+input_file_path = os.path.abspath(os.path.join(script_directory, '..','..', 'output', 'get_border_text_04_1.html'))
 
 # 関数を呼び出して結果を配列に格納
 result_array = process_text_file(input_file_path)
