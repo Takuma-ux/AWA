@@ -22,6 +22,14 @@ README.md（説明ファイル、コマンドが書いてある）
 ## 実行コマンド
 Windows Powershellで以下を実行
 
+python ./main_program/module/delete_top.py
+
+python ./main_program/module/get_head.py
+
+python ./main_program/module/delete_top_table.py
+
+python ./main_program/module/delete_img.py
+
 python .\main_program\module\get_hyper_links.py
 
 python .\main_program\module\border-checker.py
