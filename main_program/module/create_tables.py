@@ -136,8 +136,8 @@ def create_html_tables(docx_path):
 
 # 相対パスを設定
 script_directory = os.path.dirname(os.path.abspath(__file__))
-input_file_path = os.path.abspath(os.path.join(script_directory, '..','..', 'input', '240527_2.docx'))
-output_file_path = os.path.abspath(os.path.join(script_directory, '..','..', 'output', 'combined_tables_05_2.html'))
+input_file_path = os.path.abspath(os.path.join(script_directory, '..','..', 'input', '240418【校了】自己分析_看護師_転職成功_without_toc_final_no_images.docx'))
+output_file_path = os.path.abspath(os.path.join(script_directory, '..','..', 'output', 'combined_tables_04_2.html'))
 
 # すべてのテーブルを1つのHTMLにまとめて保存
 combined_html = create_html_tables(input_file_path)

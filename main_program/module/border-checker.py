@@ -12,7 +12,7 @@ def get_text_with_borders():
     try:
         # スクリプトのディレクトリを基準にした相対パスを取得
         script_directory = os.path.dirname(os.path.abspath(__file__))
-        docx_file_path = os.path.abspath(os.path.join(script_directory, '..', '..', 'input', '240527_1.docx'))
+        docx_file_path = os.path.abspath(os.path.join(script_directory, '..', '..', 'input', '240418【校了】自己分析_看護師_転職成功_without_toc_final_no_images.docx'))
 
         # 入力ファイルが存在するか確認
         if not os.path.exists(docx_file_path):
@@ -93,7 +93,7 @@ bordered_text_content = get_text_with_borders()
 
 # スクリプトのディレクトリを基準にした相対パスを取得
 script_directory = os.path.dirname(os.path.abspath(__file__))
-output_file_path = os.path.abspath(os.path.join(script_directory, '..','..', 'output', 'get_border_text_05_1.html'))
+output_file_path = os.path.abspath(os.path.join(script_directory, '..','..', 'output', 'get_border_text_04_2.html'))
 
 # 出力ディレクトリが存在しない場合は作成
 output_directory = os.path.dirname(output_file_path)
