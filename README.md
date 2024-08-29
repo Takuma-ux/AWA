@@ -22,4 +22,6 @@ README.md（説明ファイル、コマンドが書いてある）
 ## 実行コマンド
 Windows Powershellで以下を実行
 
+（※Wordファイルを開いていると、エラーが発生します。タスクマネージャーで閉じていることを確認してください）
+
 powershell -ExecutionPolicy Bypass -File ./run_scripts.ps1
