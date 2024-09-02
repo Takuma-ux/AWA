@@ -56,20 +56,20 @@ def process_text_file(input_file_path):
     return results
 
 # 使用例
-script_directory = os.path.dirname(os.path.abspath(__file__))
-input_file_path = os.path.abspath(os.path.join(script_directory, '..','..', 'output', 'get_border_text_04_2.html'))
+# script_directory = os.path.dirname(os.path.abspath(__file__))
+# input_file_path = os.path.abspath(os.path.join(script_directory, '..','..', 'output', 'get_border_text_04_2.html'))
 
-# 関数を呼び出して結果を配列に格納
-result_array = process_text_file(input_file_path)
+# # 関数を呼び出して結果を配列に格納
+# result_array = process_text_file(input_file_path)
 
 # 結果をファイルに書き出し
 # output_file_path = r'../output/result_array_output.txt'
 # with open(output_file_path, 'w', encoding='utf-8') as f:
-for text in result_array:
-    # テキストを加工
-    text = remove_duplicate_numbers_with_ret(text)
-    cleaned_text = clean_text(text)
-    text = text.replace(' ', '')  # スペースを削除
+# for text in result_array:
+#     # テキストを加工
+#     text = remove_duplicate_numbers_with_ret(text)
+#     cleaned_text = clean_text(text)
+#     text = text.replace(' ', '')  # スペースを削除
     
     # repr を使って内容を確認するために出力
     # print(text)

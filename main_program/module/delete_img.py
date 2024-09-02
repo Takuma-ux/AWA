@@ -1,5 +1,8 @@
 from docx import Document
 import os
+import json
+import argparse
+import re
 
 def save_image(image_part, output_folder, image_number):
     # 画像の拡張子を取得
@@ -64,9 +67,38 @@ def remove_and_save_images_from_docx(file_path, output_folder):
     print(f"保存先ディレクトリ: {os.path.dirname(output_file_path)}")
     print(f"保存ファイル名: {os.path.basename(output_file_path)}")
 
-# 使用
-script_directory = os.path.dirname(os.path.abspath(__file__))
-input_file_path = os.path.abspath(os.path.join(script_directory, '..','..', 'input', '240418【校了】自己分析_看護師_転職成功_without_toc_final.docx'))
-output_folder = './extracted_images/'
-remove_and_save_images_from_docx(input_file_path, output_folder)
+# コマンドライン引数をパースするための設定
+parser = argparse.ArgumentParser(description='Process some files.')
+parser.add_argument('--config', required=True, help='Path to the config JSON file')
+args = parser.parse_args()
+
+# JSONファイルのパスを取得
+json_file_path = args.config
+# JSONファイルで指定されている元のパスを取得
+# JSONファイルを開いて読み込む
+with open(json_file_path, 'r', encoding='utf-8-sig') as file:
+    data = json.load(file)
+
+base_dir = os.path.dirname(json_file_path) 
+# 元のdocxファイルのパスを取得
+docx_raw_file_path = os.path.abspath(os.path.join(base_dir, data["docx_raw_file_path"]))
+
+# docx_file_path_2 を生成
+docx_raw_file_name = os.path.basename(docx_raw_file_path)
+output_dir = os.path.join(base_dir, "output")
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+docx_file_name_modified = docx_raw_file_name.replace('.docx', '_without_toc_final.docx')
+docx_file_path_2 = os.path.abspath(os.path.join(output_dir, docx_file_name_modified))
+
+# JSONファイル名から数字を抽出
+match = re.search(r'\d+', os.path.basename(json_file_path))
+if match:
+    number = match.group()
+else:
+    number = 'default'  # 数字が見つからない場合のデフォルト値
+
+# output_folder の名前を設定
+output_folder = os.path.join(base_dir, f'extracted_images_{number}')
+remove_and_save_images_from_docx(docx_file_path_2, output_folder)
 
