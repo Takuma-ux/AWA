@@ -23,7 +23,7 @@ def txt_to_2d_array(file_path):
 # if __name__ == "__main__":
 #     # テキストファイルのパス
 #     script_directory = os.path.dirname(os.path.abspath(__file__))
-#     input_file_path = os.path.abspath(os.path.join(script_directory, '..','..', 'output', 'get_border_text_08_1.html'))
+#     input_file_path = os.path.abspath(os.path.join(script_directory, '..','..', 'output', 'get_border_text_04_1.html'))
     
 #     # 二次元配列としてテキストファイルを処理
 #     result_array = txt_to_2d_array(input_file_path)

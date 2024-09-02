@@ -1,5 +1,7 @@
 ﻿import os
 import win32com.client as win32
+import json
+import argparse
 
 # Word の定数を定義
 wdBorderTop = 1
@@ -8,15 +10,12 @@ wdBorderLeft = 4
 wdBorderRight = 2
 wdWithInTable = 12
 
-def get_text_with_borders():
+def get_text_with_borders(docx_file_path_2):
     try:
-        # スクリプトのディレクトリを基準にした相対パスを取得
-        script_directory = os.path.dirname(os.path.abspath(__file__))
-        docx_file_path = os.path.abspath(os.path.join(script_directory, '..', '..', 'input', '240418【校了】自己分析_看護師_転職成功_without_toc_final_no_images.docx'))
 
         # 入力ファイルが存在するか確認
-        if not os.path.exists(docx_file_path):
-            print(f"ファイルが見つかりません: {docx_file_path}")
+        if not os.path.exists(docx_file_path_2):
+            print(f"ファイルが見つかりません: {docx_file_path_2}")
             return None
 
         # Word アプリケーションを作成
@@ -24,7 +23,7 @@ def get_text_with_borders():
         word.Visible = False
 
         # Word ドキュメントを開く
-        document = word.Documents.Open(docx_file_path)
+        document = word.Documents.Open(docx_file_path_2)
 
                 # 境界線付き段落のテキストを保存するためのリストを作成
         bordered_texts = []
@@ -88,23 +87,40 @@ def get_text_with_borders():
         return None
 
 
+
+
+# コマンドライン引数をパースするための設定
+parser = argparse.ArgumentParser(description='Process some files.')
+parser.add_argument('--config', required=True, help='Path to the config JSON file')
+args = parser.parse_args()
+
+# JSONファイルのパスを取得
+json_file_path = args.config
+# JSONファイルで指定されている元のパスを取得
+# JSONファイルを開いて読み込む
+with open(json_file_path, 'r', encoding='utf-8-sig') as file:
+    data = json.load(file)
+
+base_dir = os.path.dirname(json_file_path) 
+# 元のdocxファイルのパスを取得
+docx_raw_file_path = os.path.abspath(os.path.join(base_dir, data["docx_raw_file_path"]))
+border_file_path = os.path.abspath(os.path.join(base_dir, data["border_file_path"]))
+
+# docx_file_path_2 を生成
+docx_raw_file_name = os.path.basename(docx_raw_file_path)
+output_dir = os.path.join(base_dir, "output")
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+docx_file_name_modified = docx_raw_file_name.replace('.docx', '_without_toc_final_no_images.docx')
+docx_file_path_2 = os.path.abspath(os.path.join(output_dir, docx_file_name_modified))
+
 # 関数の使用例
-bordered_text_content = get_text_with_borders()
-
-# スクリプトのディレクトリを基準にした相対パスを取得
-script_directory = os.path.dirname(os.path.abspath(__file__))
-output_file_path = os.path.abspath(os.path.join(script_directory, '..','..', 'output', 'get_border_text_04_2.html'))
-
-# 出力ディレクトリが存在しない場合は作成
-output_directory = os.path.dirname(output_file_path)
-if not os.path.exists(output_directory):
-    os.makedirs(output_directory)
-
-with open(output_file_path, 'w', encoding='utf-8') as f:
+bordered_text_content = get_text_with_borders(docx_file_path_2)
+with open(border_file_path, 'w', encoding='utf-8') as f:
     # ファイルに出力
     if bordered_text_content:
             f.write(bordered_text_content)
     else:
         f.write("")  # 空のファイルを作成
 
-print(f"罫線付き段落のテキストがファイルに保存されました: {output_file_path}")
+print(f"罫線付き段落のテキストがファイルに保存されました: {border_file_path}")

@@ -1,5 +1,7 @@
 ﻿import os
 import win32com.client as win32
+import json
+import argparse
 
 # 定数を手動で設定
 wdYellow = 7
@@ -53,12 +55,39 @@ def remove_before_specific_text_and_insert_heading(file_path, stop_text):
         document.Close(False)
         word.Quit()
 
-# 使用例
-script_directory = os.path.dirname(os.path.abspath(__file__))
-input_file_path = os.path.abspath(os.path.join(script_directory, '..','..', 'input', '240418【校了】自己分析_看護師_転職成功_without_toc.docx'))
-heading1_file_path = os.path.abspath(os.path.join(script_directory, '..', '..', 'output', 'heading4_1.txt'))
+# コマンドライン引数をパースするための設定
+parser = argparse.ArgumentParser(description='Process some files.')
+parser.add_argument('--config', required=True, help='Path to the config JSON file')
+args = parser.parse_args()
+
+# JSONファイルのパスを取得
+json_file_path = args.config
+# JSONファイルで指定されている元のパスを取得
+# JSONファイルを開いて読み込む
+with open(json_file_path, 'r', encoding='utf-8-sig') as file:
+    data = json.load(file)
+
+base_dir = os.path.dirname(json_file_path) 
+# 元のdocxファイルのパスを取得
+docx_raw_file_path = os.path.abspath(os.path.join(base_dir, data["docx_raw_file_path"]))
+heading1_file_path = os.path.abspath(os.path.join(base_dir, data["heading1_file_path"]))
+# 生成されるdocxファイルのパスを変更 (例: outputフォルダに保存)
+output_dir = os.path.join(base_dir, "output")
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+
+docx_raw_file_name = os.path.basename(docx_raw_file_path)
+docx_file_name_modified = docx_raw_file_name.replace('.docx', '_without_toc.docx')
+docx_file_path_2 = os.path.abspath(os.path.join(output_dir, docx_file_name_modified))
+print(f"docx_file_path_2: {docx_file_path_2}")
 heading1_array = []
 heading1_array = load_headings(heading1_file_path)
-print(heading1_array[0])
-stop_text = heading1_array[0]
-remove_before_specific_text_and_insert_heading(input_file_path, stop_text)
+
+# ファイルが存在するか確認する
+if not os.path.exists(docx_file_path_2):
+    print(f"エラー: ファイルが存在しません: {docx_file_path_2}")
+else:
+    print(f"ファイルを処理中: {docx_file_path_2}")
+    stop_text = stop_text = heading1_array[0]  # ここで最初のコードと同様に設定  # 例として設定
+    print(f"対象のテキスト{stop_text}")
+    remove_before_specific_text_and_insert_heading(docx_file_path_2, stop_text)
