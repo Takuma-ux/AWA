@@ -17,19 +17,27 @@ $count = 1
 
 # 各.docxファイルについて処理
 foreach ($docxFile in $docxFiles) {
+    # 出力フォルダのパスを設定
+    $outputFolder = "./output/$count"
+    
+    # フォルダが存在しない場合、作成
+    if (-not (Test-Path -Path $outputFolder)) {
+        New-Item -ItemType Directory -Path $outputFolder
+    }
+
     # JSONファイルのパスを設定
     $configJsonPath = "./config_$count.json"
 
     # JSONの内容を定義 (名前にカウントを追加)
     $jsonContent = @{
         "docx_raw_file_path" = "./input/$($docxFile.Name)"
-        "table_file_path" = "./output/combined_tables_$count.html"
-        "border_file_path" = "./output/get_border_text_$count.html"
-        "hyper_links_file_path" = "./output/hyperlinks_text_output_$count.txt"
-        "links_file_path" = "./output/comments_output_$count.txt"
-        "heading1_file_path" = "./output/heading1_$count.txt"
-        "heading2_file_path" = "./output/heading2_$count.txt"
-        "output_file_path" = "./output/extracted_text_$count.html"
+        "table_file_path" = "$outputFolder/combined_tables_$count.html"
+        "border_file_path" = "$outputFolder/get_border_text_$count.html"
+        "hyper_links_file_path" = "$outputFolder/hyperlinks_text_output_$count.txt"
+        "links_file_path" = "$outputFolder/comments_output_$count.txt"
+        "heading1_file_path" = "$outputFolder/heading1_$count.txt"
+        "heading2_file_path" = "$outputFolder/heading2_$count.txt"
+        "output_file_path" = "$outputFolder/extracted_text_$count.html"
     }
 
     # JSONファイルを作成 (utf-8 エンコードを指定)
@@ -41,6 +49,7 @@ foreach ($docxFile in $docxFiles) {
     # カウントをインクリメント
     $count++
 }
+
 $count = 1
 # 生成された各JSONファイルに対してPythonスクリプトを実行
 foreach ($docxFile in $docxFiles) {

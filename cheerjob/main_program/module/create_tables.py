@@ -5,6 +5,7 @@ import colorsys  # HSV変換のために使用
 import sys
 import json
 import argparse
+import re
 
 # 色範囲の定義
 orange_rgb_range = {
@@ -237,7 +238,14 @@ heading1_file_path = os.path.abspath(os.path.join(base_dir, data["heading1_file_
 heading2_file_path = os.path.abspath(os.path.join(base_dir, data["heading2_file_path"]))
 # docx_file_path_2 を生成
 docx_raw_file_name = os.path.basename(docx_raw_file_path)
-output_dir = os.path.join(base_dir, "output")
+# JSONファイル名から数字を抽出
+match = re.search(r'\d+', os.path.basename(json_file_path))
+if match:
+    number = match.group()
+else:
+    number = 'default'  # 数字が見つからない場合のデフォルト値
+
+output_dir = os.path.join(base_dir, "output", f"{number}")
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 docx_file_name_modified = docx_raw_file_name.replace('.docx', '_without_toc_final_no_images.docx')

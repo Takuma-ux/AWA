@@ -2,6 +2,7 @@
 import win32com.client as win32
 import json
 import argparse
+import re
 
 # 定数を手動で設定
 wdYellow = 7
@@ -38,7 +39,7 @@ def remove_before_specific_text_and_insert_heading(file_path, stop_text):
 
             # stop_text をドキュメントの先頭に挿入し、見出し1スタイルを適用
             new_paragraph = document.Paragraphs.Add(document.Content)
-            new_paragraph.Range.Text = stop_text
+            new_paragraph.Range.Text = f'\n{stop_text}\n'
             new_paragraph.Range.Style = document.Styles("見出し 1")
 
             # 黄色マーカーのチェックと削除
@@ -72,7 +73,14 @@ base_dir = os.path.dirname(json_file_path)
 docx_raw_file_path = os.path.abspath(os.path.join(base_dir, data["docx_raw_file_path"]))
 heading1_file_path = os.path.abspath(os.path.join(base_dir, data["heading1_file_path"]))
 # 生成されるdocxファイルのパスを変更 (例: outputフォルダに保存)
-output_dir = os.path.join(base_dir, "output")
+# JSONファイル名から数字を抽出
+match = re.search(r'\d+', os.path.basename(json_file_path))
+if match:
+    number = match.group()
+else:
+    number = 'default'  # 数字が見つからない場合のデフォルト値
+
+output_dir = os.path.join(base_dir, "output", f"{number}")
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 

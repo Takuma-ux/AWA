@@ -343,7 +343,7 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
                     if f"{comment_text}" in blue_text:
                         # 条件を満たした場合の処理をここに記述
                         if "http" in comment[1]:
-                            if "https://AAA.com" in comment[1]:
+                            if "https://www.cheer-job.com" in comment[1]:
                                 link = comment[1]
                                 blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="{link}">{comment[0]}')
                             else:
@@ -391,7 +391,7 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
                     if f"{comment_text}" in blue_text:
                         # 条件を満たした場合の処理をここに記述
                         if "http" in comment[1]:
-                            if "https://www.AAA.com" in comment[1]:
+                            if "https://www.cheer-job.com" in comment[1]:
                                 link = comment[1]
                                 blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="{link}">{comment[0]}')
                             else:
@@ -560,8 +560,7 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
         else:
             if last_text_count < len(box_last_text) and f'{box_last_text[last_text_count]}' in normal_text:#{smart_text}がない
                     normal_text = normal_text.replace('\n','\r')
-                    if '<p>・' in normal_text or '<p> ・' in normal_text:
-                        normal_text = process_normal_text(normal_text)
+                    normal_text = process_normal_text(normal_text)
                     last_text_count += 1
                     box_count = 0
                     prev_is_normal = False
@@ -630,7 +629,13 @@ def extract_text_with_markup(docx_file, html_tables,border_file_path,hyper_links
     # docx_file_path_2 を生成
     docx_raw_file_name = os.path.basename(docx_raw_file_path)
     # 生成されるdocxファイルのパスを変更 (例: outputフォルダに保存)
-    output_dir = os.path.join(base_dir, "output")
+    match = re.search(r'\d+', os.path.basename(json_file_path))
+    if match:
+        number = match.group()
+    else:
+        number = 'default'  # 数字が見つからない場合のデフォルト値
+
+    output_dir = os.path.join(base_dir, "output", f"{number}")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     docx_file_name_modified = docx_raw_file_name.replace('.docx', '_without_toc_final_no_images.docx')
@@ -775,8 +780,8 @@ def extract_text_with_markup(docx_file, html_tables,border_file_path,hyper_links
                 
         # テキストが空でない場合のみ処理を行います
         if paragraph_text:
-            paragraph_text = paragraph_text.replace('<p>/</p>','').replace('<strong>\r</strong>','').replace('<p></p>','').replace('<strong></strong>','').replace('</strong><strong>','').replace('<p>\r</p>','').replace('<p>\r','<p>').replace('','').replace('','').replace('','').replace('<p>▼関連記事はこちら</p>\r<p>','<p>▼関連記事はこちら<br />\r').replace('<p>/</p>','').replace('<br />\r</span></div>','\r</span></div>').replace('<p> </p>','').replace('</a></p>\r<p><a','</a><br />\r<a').replace('</a></p>\n<p><a',',</a><br />\r<a').replace('</a></p>\n<p>',',</a><br />\r').replace('▼関連記事はコチラ</p>\r<p><a','▼関連記事はコチラ<br />\r<a').replace('▼関連記事はコチラ</p>\n<p><a>','▼関連記事はコチラ<br />\n<a').replace('<a href="">\r</a>','').replace('\r</a>','</a>').replace('\n</a>','</a>').replace('<h4','<p>&nbsp;</p>\r\r<h4').replace('<h3','<p>&nbsp;</p>\r\r<p>&nbsp;</p>\r\r<h3').replace('<a href="">\r<a href="">','<a href="">').replace('\r</h4>','</h4>').replace('\r</h3>','</h3>').replace('<div style="background:#ffffff;border:1px solid #cccccc;padding:5px 10px;">\r<br />','<div style="background:#ffffff;border:1px solid #cccccc;padding:5px 10px;">\r')
-            paragraph_text += '<p>&nbsp;</p>\r\r<p>&nbsp;</p>\r\r<center><a href="https://www.AAA.com/entry?utm_source=column&amp;utm_medium=Direct&amp;utm_campaign=column24-3-2"><img alt="entry" src="https://materialfile.s3-ap-northeast-1.amazonaws.com/b5dc427af93f6ae792c78ba9273009ec/article/677/2005AAA_bnr500_180.png" style="width: 500px; height: 180px;" /></a></center>\r\r<p>&nbsp;</p>\r\r<center><a href="https://AAA.com/firsttime.html?utm_source=column&amp;utm_medium=Direct&amp;utm_campaign=column24-3-2"><font color="#f08300" size="4">転職サポートとは？</font> </a></center>\r\r<p>&nbsp;</p>'
+            paragraph_text = paragraph_text.replace('<p>/</p>','').replace('<strong>\r</strong>','').replace('<strong></strong>','').replace('</strong><strong>','').replace('<p>\r</p>','').replace('<p>\r','<p>').replace('','').replace('','').replace('','').replace('<p>▼関連記事はこちら</p>\r<p>','<p>▼関連記事はこちら<br />\r').replace('<p>/</p>','').replace('<br />\r</span></div>','\r</span></div>').replace('<p> </p>','').replace('</a></p>\r<p><a','</a><br />\r<a').replace('</a></p>\n<p><a',',</a><br />\r<a').replace('</a></p>\n<p>',',</a><br />\r').replace('▼関連記事はコチラ</p>\r<p><a','▼関連記事はコチラ<br />\r<a').replace('▼関連記事はコチラ</p>\n<p><a>','▼関連記事はコチラ<br />\n<a').replace('<a href="">\r</a>','').replace('\r</a>','</a>').replace('\n</a>','</a>').replace('<h4','<p>&nbsp;</p>\r\r<h4').replace('<h3','<p>&nbsp;</p>\r\r<p>&nbsp;</p>\r\r<h3').replace('<a href="">\r<a href="">','<a href="">').replace('\r</h4>','</h4>').replace('\r</h3>','</h3>').replace('<div style="background:#ffffff;border:1px solid #cccccc;padding:5px 10px;">\r<br />','<div style="background:#ffffff;border:1px solid #cccccc;padding:5px 10px;">\r').replace('<p></p>','')
+            paragraph_text += '<p>&nbsp;</p>\r\r<p>&nbsp;</p>\r\r<center><a href="https://www.cheer-job.com/entry?utm_source=column&amp;utm_medium=Direct&amp;utm_campaign=column24-3-2"><img alt="entry" src="https://materialfile.s3-ap-northeast-1.amazonaws.com/b5dc427af93f6ae792c78ba9273009ec/article/677/2005cheerjob_bnr500_180.png" style="width: 500px; height: 180px;" /></a></center>\r\r<p>&nbsp;</p>\r\r<center><a href="https://https://www.cheer-job.com/firsttime.html?utm_source=column&amp;utm_medium=Direct&amp;utm_campaign=column24-3-2"><font color="#f08300" size="4">転職サポートとは？</font> </a></center>\r\r<p>&nbsp;</p>'
             while (hyper_text_count < len(hyper_link_text)):
                 for comment in comments_list:
                     if hyper_link_text[hyper_text_count] in comment[0]:
@@ -820,7 +825,13 @@ heading2_file_path = os.path.abspath(os.path.join(base_dir, data["heading2_file_
 
 # docx_file_path_2 を生成
 docx_raw_file_name = os.path.basename(docx_raw_file_path)
-output_dir = os.path.join(base_dir, "output")
+match = re.search(r'\d+', os.path.basename(json_file_path))
+if match:
+    number = match.group()
+else:
+    number = 'default'  # 数字が見つからない場合のデフォルト値
+
+output_dir = os.path.join(base_dir, "output", f"{number}")
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 docx_file_name_modified = docx_raw_file_name.replace('.docx', '_without_toc_final_no_images.docx')

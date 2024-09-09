@@ -1,4 +1,5 @@
 # logs/ディレクトリを無視
 /input/*
+/input_sub_nurse
 # .gitkeepは無視しないようにする
 !input/.gitkeep

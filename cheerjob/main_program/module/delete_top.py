@@ -2,6 +2,7 @@
 import win32com.client as win32
 import json
 import argparse
+import re
 
 # Word の定数を定義
 wdBorderTop = 1
@@ -10,7 +11,7 @@ wdBorderLeft = 4
 wdBorderRight = 2
 wdWithInTable = 12
 
-def remove_table_of_contents(file_path):
+def remove_table_of_contents(file_path, number):
     # Word アプリケーションの起動
     word = win32.Dispatch("Word.Application")
     word.Visible = False  # Wordを非表示で実行
@@ -22,10 +23,12 @@ def remove_table_of_contents(file_path):
         # 目次をすべて削除
         for toc in document.TablesOfContents:
             toc.Delete()
+            # JSONファイル名から数字を抽出
+        
 
         # 変更を保存
         # outputディレクトリに保存するように変更
-        output_dir = os.path.join(os.path.dirname(file_path), '..', 'output')
+        output_dir = os.path.join(os.path.dirname(file_path), '..', 'output', f'{number}')
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         
@@ -53,8 +56,14 @@ json_file_path = args.config
 with open(json_file_path, 'r', encoding='utf-8-sig') as file:
     data = json.load(file)
 
-base_dir = os.path.dirname(json_file_path) 
+base_dir = os.path.dirname(json_file_path)
+match = re.search(r'\d+', os.path.basename(json_file_path))
+if match:
+    number = match.group()
+else:
+    number = 'default'  # 数字が見つからない場合のデフォルト値
+
 # 元のdocxファイルのパスを取得
 docx_raw_file_path = os.path.abspath(os.path.join(base_dir, data["docx_raw_file_path"]))
 
-remove_table_of_contents(docx_raw_file_path)
+remove_table_of_contents(docx_raw_file_path, number)

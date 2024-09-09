@@ -85,11 +85,7 @@ docx_raw_file_path = os.path.abspath(os.path.join(base_dir, data["docx_raw_file_
 
 # docx_file_path_2 を生成
 docx_raw_file_name = os.path.basename(docx_raw_file_path)
-output_dir = os.path.join(base_dir, "output")
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
-docx_file_name_modified = docx_raw_file_name.replace('.docx', '_without_toc_final.docx')
-docx_file_path_2 = os.path.abspath(os.path.join(output_dir, docx_file_name_modified))
+
 
 # JSONファイル名から数字を抽出
 match = re.search(r'\d+', os.path.basename(json_file_path))
@@ -98,7 +94,12 @@ if match:
 else:
     number = 'default'  # 数字が見つからない場合のデフォルト値
 
+output_dir = os.path.join(base_dir, "output", f"{number}")
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+docx_file_name_modified = docx_raw_file_name.replace('.docx', '_without_toc_final.docx')
+docx_file_path_2 = os.path.abspath(os.path.join(output_dir, docx_file_name_modified))
 # output_folder の名前を設定
-output_folder = os.path.join(base_dir, f'extracted_images_{number}')
+output_folder = os.path.join(output_dir, f'extracted_images')
 remove_and_save_images_from_docx(docx_file_path_2, output_folder)
 
