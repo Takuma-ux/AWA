@@ -7,7 +7,7 @@ import json
 import argparse
 from module import border_last_text
 from module import border_text
-from module import get_hyper_link_text
+# from module import get_hyperlink_list
 def get_text_difference(A, B):
     # 差分を取得するためにSequenceMatcherを使用
     diff = difflib.ndiff(B, A)
@@ -15,24 +15,53 @@ def get_text_difference(A, B):
     result = ''.join([char[2:] for char in diff if char.startswith('+ ')])
     print(repr(f'result:{result}'))
     return result
+def get_paragraph_text_with_alignment(word_range):
+    try:
+        # word_rangeが属する段落を取得
+        paragraph = word_range.Paragraphs(1)  
+        alignment_value = paragraph.Format.Alignment  # 段落の整列を取得
+        
+        # Alignmentの値を解釈し、対応するCSSのtext-align値を設定
+        if alignment_value == 0:
+            alignment = ""
+        elif alignment_value == 2:
+            alignment = "text-align: center;"
+        elif alignment_value == 1:
+            alignment = "text-align: right;"
+        elif alignment_value == 3:
+            alignment = "text-align: justify;"
+        else:
+            alignment = ""  # デフォルトは左揃えに
+        
+        # 段落全体のテキストを取得
+        # paragraph_text = paragraph.Range.Text
+
+        # 出力するHTML形式の<p>タグ付きテキスト
+        # html_paragraph = f'<p style="text-align: {alignment};">{paragraph_text}</p>'
+        # return html_paragraph
+        return alignment
+    except Exception as e:
+        print(f"Error processing word_range: {e}")
+        return ""
+
 def remove_html_tags(text):
     return re.sub(r'<[^>]*>', '', text)  # HTMLタグを削除
 # 正規表現でhrefを置換する
-def replace_href(html):
+def replace_href(html,h2_count):
     # <a>タグごとに処理
     tags = re.split(r'(<a.*?>.*?</a>)', html, flags=re.DOTALL)
     for i, tag in enumerate(tags):
         if 'href=""' in tag:
             # マッチした<a>タグの中のhref=""を置換
-            tags[i] = re.sub(r'href=""', lambda match: f'href="#text{replace_href.counter}"', tag)
+            tags[i] = re.sub(r'href=""', lambda match: f'href="#anc{h2_count}-{replace_href.counter}"', tag)
             replace_href.counter += 1
     return ''.join(tags)
 
-def replace_counter(html, h3_count): 
-    replace_href.counter = h3_count
+def replace_counter(html,h2_count, h5_count): 
+    replace_href.counter = h5_count
     # 全体を<a>タグごとに分割しつつ処理
     if 'href=""' in html:
-        html = replace_href(html)  # 一度に全体を置換
+        html = replace_href(html,h2_count)  # 一度に全体を置換
     return html
 
 def remove_duplicate_english_words(word_range,prev_word_range,smart_text):
@@ -118,46 +147,10 @@ def load_comments_from_file(file_path):
             comments_list.append(cleaned_parts)
 
     return comments_list
-def process_blue_text(blue_text,h3_count):
-    # 1. "<p>" と "</p>" を除去
-    blue_text = blue_text.replace("<p>", "").replace("</p>", "").replace('<br />','').replace('<a href="">','').replace('</a>','').replace('\r\r','\r').replace('<div class="solution" style="padding:10px 15px;border:1px solid #000000;">','').replace('</div>','')
-
-    # 2. '\r' ごとに分割して blue_split_text に格納
-    blue_split_text = blue_text.split('\r')
-
-    # 3. 各項目に対して処理を行う
-    processed_texts = []
-    text_count = 1
-    for text in blue_split_text:
-        stripped_text = text.strip()  # 先頭の空白を除去
-        if stripped_text and not stripped_text[1:].strip() == '':
-            if '<strong>' in stripped_text or '</strong>' in stripped_text:
-                stripped_text= stripped_text.replace('<strong>','').replace('</strong>','')
-                if stripped_text and not stripped_text[1:].strip() == '':
-                    if stripped_text.startswith('・'):
-                        stripped_text = f'<li><span style="text-decoration: underline; color: #56a0d6;"><a href="#text{text_count}"><strong>{stripped_text[1:].strip()}</strong></a></span></li>'
-                    else:
-                        stripped_text = f'<span style="text-decoration: underline; color: #e67e23"><a href="#text{text_count}"><strong>{stripped_text}</strong></a></span><br />'
-                    text_count +=1
-
-            else:    
-                # "・"で始まる場合に <li> タグで囲む
-                if stripped_text.startswith('・'):
-                    stripped_text = f'<li><span style="text-decoration: underline; color: #56a0d6;"><a href="#text{text_count}">{stripped_text[1:].strip()}</a></span></li>'
-                else:
-                    stripped_text = f'<span style="text-decoration: underline; color: #e67e23;"><a href="#text{text_count}">{stripped_text}</a></span><br />'
-                text_count +=1
-            
-        processed_texts.append(stripped_text)
-
-    # 4. 結果を一つの文字列にまとめ、指定のフォーマットで囲む
-    final_text = '<div class="solution" style="padding:10px 15px;border:1px solid #000000;"><ul>\r' + "\r".join(processed_texts) + '\r</ul></div>'
-    final_text = final_text.replace('<br />\r</div>','\r</div>')
-    return final_text
 def process_normal_text(normal_text):
     first_li_flag = True
     # 1. "<p>" と "</p>" を除去
-    normal_text = normal_text.replace("<p>", "").replace("</p>", "").replace('<br />','').replace('<div class="solution" style="padding:10px 15px;border:1px solid #000000;">','').replace('</div>','').replace('\r\r','')
+    normal_text = normal_text.replace("<p>", "").replace("</p>", "").replace('<br />','').replace('<div style="border: solid windowtext 1.0pt; padding: 10px 10px 20px;  margin: 20px 0;">','').replace('</div>','')
 
     # 2. '\r' ごとに分割して normal_split_text に格納
     normal_split_text = normal_text.split('\r')
@@ -167,35 +160,35 @@ def process_normal_text(normal_text):
     for text in normal_split_text:
         stripped_text = text.strip()  # 先頭の空白を除去
         if stripped_text and not stripped_text[1:].strip() == '':
-            if '<span style="background:linear-gradient(transparent 60%, #ffe57f 60%);"><strong>' in stripped_text or '</strong></span>' in stripped_text:
-                stripped_text= stripped_text.replace('<span style="background:linear-gradient(transparent 60%, #ffe57f 60%);"><strong>','').replace('</strong></span>','')
+            if '<span style="background-color: #00ffff;"><b>' in stripped_text or '</b></span>' in stripped_text:
+                stripped_text= stripped_text.replace('<span style="background-color: #00ffff;"><b>','').replace('</b></span>','')
                 if stripped_text and not stripped_text[1:].strip() == '':
                     if stripped_text.startswith('・'):
                         if first_li_flag:
-                            stripped_text = f'<ul><li><span style="background:linear-gradient(transparent 60%, #ffe57f 60%);"><strong>{stripped_text[1:].strip()}</strong></span></li>'
+                            stripped_text = f'<ul><li><span style="background-color: #00ffff;"><b>{stripped_text[1:].strip()}</b></span></li>'
                             first_li_flag = False
                         else:
-                            stripped_text = f'<li><span style="background:linear-gradient(transparent 60%, #ffe57f 60%);"><strong>{stripped_text[1:].strip()}</strong></span></li>'
+                            stripped_text = f'<li><span style="background-color: #00ffff;"><b>{stripped_text[1:].strip()}</b></span></li>'
                     else:
                         if not first_li_flag:
-                            stripped_text = f'</ul>\r<span style="background:linear-gradient(transparent 60%, #ffe57f 60%);"><strong>{stripped_text}</strong></span><br />'
+                            stripped_text = f'</ul>\r<span style="background-color: #00ffff;"><b>{stripped_text}</b></span><br />'
                         else:
-                            stripped_text = f'<span style="background:linear-gradient(transparent 60%, #ffe57f 60%);"><strong>{stripped_text}</strong></span><br />'
+                            stripped_text = f'<span style="background-color: #00ffff;"><b>{stripped_text}</b></span><br />'
                         first_li_flag = True
-            elif '<strong>' in stripped_text or '</strong>' in stripped_text:
-                stripped_text= stripped_text.replace('<strong>','').replace('</strong>','')
+            elif '<b>' in stripped_text or '</b>' in stripped_text:
+                stripped_text= stripped_text.replace('<b>','').replace('</b>','')
                 if stripped_text and not stripped_text[1:].strip() == '':
                     if stripped_text.startswith('・'):
                         if first_li_flag:
-                            stripped_text = f'<ul><li><strong>{stripped_text[1:].strip()}</strong></li>'
+                            stripped_text = f'<ul><li><b>{stripped_text[1:].strip()}</b></li>'
                             first_li_flag = False
                         else:
-                            stripped_text = f'<li><strong>{stripped_text[1:].strip()}</strong></li>'
+                            stripped_text = f'<li><b>{stripped_text[1:].strip()}</b></li>'
                     else:
                         if not first_li_flag:
-                            stripped_text = f'</ul>\r<strong>{stripped_text}</strong><br />'
+                            stripped_text = f'</ul>\r<b>{stripped_text}</b><br />'
                         else:
-                           stripped_text = f'<strong>{stripped_text}</strong><br />'
+                           stripped_text = f'<b>{stripped_text}</b><br />'
                         first_li_flag = True
 
             else:    
@@ -216,10 +209,47 @@ def process_normal_text(normal_text):
 
     # 4. 結果を一つの文字列にまとめ、指定のフォーマットで囲む
     if not first_li_flag:
-        final_text = '<div class="solution" style="padding:10px 15px;border:1px solid #000000;">\r' + "\r".join(processed_texts) + '</ul>\r</div>'
+        final_text = '<div style="border: solid windowtext 1.0pt; padding: 10px 10px 20px;  margin: 20px 0;">\r' + "\r".join(processed_texts) + '</ul>\r</div>'
     else:
-        final_text = '<div class="solution" style="padding:10px 15px;border:1px solid #000000;">\r' + "\r".join(processed_texts) + '\r</div>'
+        final_text = '<div style="border: solid windowtext 1.0pt; padding: 10px 10px 20px;  margin: 20px 0;">\r' + "\r".join(processed_texts) + '\r</div>'
     final_text = final_text.replace('<br />\r</div>','\r</div>').replace('<br /></div>','</div>').replace('<br />\r<ul>','<ul>')
+    return final_text
+def process_blue_text(blue_text,h2_count,alignment):
+    # 1. "<p>" と "</p>" を除去
+    blue_text = blue_text.replace("<p>", "").replace("</p>", "").replace('<br />','').replace('<a href="">','').replace('</a>','').replace('\r\r','\r').replace('<div style="border: solid windowtext 1.0pt; padding: 10px 10px 20px;  margin: 20px 0;">','').replace('</div>','')
+
+    # 2. '\r' ごとに分割して blue_split_text に格納
+    blue_split_text = blue_text.split('\r')
+
+    # 3. 各項目に対して処理を行う
+    processed_texts = []
+    text_count = 1
+    for text in blue_split_text:
+        stripped_text = text.strip()  # 先頭の空白を除去
+        if stripped_text and not stripped_text[1:].strip() == '':
+            if '<b>' in stripped_text or '</b>' in stripped_text:
+                stripped_text= stripped_text.replace('<b>','').replace('</b>','')
+                if stripped_text and not stripped_text[1:].strip() == '':
+                    if stripped_text.startswith('・'):
+                        # <li><a href="#anc{h2_count}-{h5_count+idx - 1}">{item.strip()}</a></li>
+                        stripped_text = f'<li><a href="#anc-{h2_count}-{text_count}"><b>{stripped_text[1:].strip()}</b></a></li>'
+                    else:
+                        stripped_text = f'<a href="#anc-{h2_count}-{text_count}"><b>{stripped_text}</b></a><br />'
+                    text_count +=1
+
+            else:    
+                # "・"で始まる場合に <li> タグで囲む
+                if stripped_text.startswith('・'):
+                    stripped_text = f'<li><a href="#anc-{h2_count}-{text_count}">{stripped_text[1:].strip()}</a></li>'
+                else:
+                    stripped_text = f'<a href="#anc-{h2_count}-{text_count}">{stripped_text}</a><br />'
+                text_count +=1
+            
+        processed_texts.append(stripped_text)
+
+    # 4. 結果を一つの文字列にまとめ、指定のフォーマットで囲む
+    final_text = f'<div style="border: solid windowtext 1.0pt; padding: 10px 10px 20px;  margin: 20px 0; {alignment}">\r<ul>\r' + "\r".join(processed_texts) + '\r</ul></div>'
+    final_text = final_text.replace('<br />\r</div>','\r</div>')
     return final_text
 
 
@@ -285,7 +315,7 @@ def modify_word_range_text(word_range, prev_word_range):
     
     return word_range
 
-def format_text_block_to_html(text_block):
+def format_text_block_to_html(text_block,alignment):
     """テキストブロックをHTMLに変換する関数。各行が<p>タグ内の文字列と一致する場合にのみ処理を実行"""
     # <p>タグの内容を取得
     paragraph_matches = re.findall(r'<p>(.*?)</p>', text_block, re.DOTALL)
@@ -297,16 +327,19 @@ def format_text_block_to_html(text_block):
     lines = text_block.strip().split('\n')
     if all(any(line.strip() in paragraph for paragraph in paragraph_matches) for line in lines):
         # 全ての行が<p>タグ内の文字列と一致する場合、<ul><li>で囲う
-        html_output = '<div class="solution" style="padding:10px 15px;border:1px solid #000000;">\n<ul>\n'
+        html_output = '<div style="border: solid windowtext 1.0pt; padding: 10px 10px 20px;  margin: 20px 0;">\n<ul>\n'
         for line in lines:
             line_content = line.lstrip('・').strip()
-            html_output += f'<li><strong>{line_content}</strong></li>\n'
+            html_output += f'<li><b>{line_content}</b></li>\n'
         html_output += '</ul>\n</div>\n'
     else:
         # 一致しない場合、各行をそのまま出力し、<br>で区切る
-        html_output = '<div class="solution" style="padding:10px 15px;border:1px solid #000000;">\n'
+        if alignment is not None and alignment != "left":
+            html_output = f'<div style="border: solid windowtext 1.0pt; padding: 10px 10px 20px;  margin: 20px 0; {alignment}">\n'
+        else:
+            html_output = '<div style="border: solid windowtext 1.0pt; padding: 10px 10px 20px;  margin: 20px 0;">\n'
         for line in lines:
-            html_output += f'<strong>{line.strip()}</strong><br />\n'
+            html_output += f'<b>{line.strip()}</b><br />\n'
         html_output += '</div>\n'
 
     return html_output
@@ -391,8 +424,8 @@ def is_blue_color(word_range):
     #     print(blue_hsv)
     return blue_hsv[0] >= 200 and blue_hsv[0] <= 260  # 青色のHSV範囲（Hue）
 
-def is_yellow_color(word_range):
-    if word_range.HighlightColorIndex == 7:  # 7は黄色を表す定数
+def is_Turquoise_color(word_range):
+    if word_range.HighlightColorIndex == 3:  # 3は水色を表す定数
         return True
     return False
 
@@ -410,7 +443,7 @@ def is_end(word_range):
     else:
         return False
     
-def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text,hyper_link_text, hyper_text_count, box_text, box_count, box_last_text, last_text_count, comments_list, links_count, heading1_array,heading2_array, h2_count,h3_count, prev_is_normal, next_is_table, smart_text,combined_box_text,diff_text):
+def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text,hyperlink_list, hyper_text_count, box_text, box_count, box_last_text, last_text_count, comments_list, links_count, heading1_array,heading2_array, h2_count,h5_count, prev_is_normal, next_is_table, smart_text,combined_box_text,alignment,diff_text):
     if is_blue_color(word_range):
         # 青色の開始
         # bold_text=remove_duplicate_numbers_with_ret(bold_text)
@@ -419,25 +452,25 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
         if prev_word_range is not None and (is_end(prev_word_range) or (not is_blue_color(prev_word_range) or (is_heading1(prev_word_range) or is_heading2(prev_word_range)))):#前回が太字でない場合
             smart_text.replace('\r', '\n')
             if not prev_is_normal:
-                if word_range.Bold:
-                    blue_text += f'<p><strong><a href="">{smart_text}'
+                if alignment is not None and alignment != "left":
+                    blue_text += f'<p style="{alignment};"><a href="">{smart_text}'
                 else:
                     blue_text += f'<p><a href="">{smart_text}'
                 prev_is_normal = True
             else:
                 if (not is_end(prev_word_range) and prev_word_range.Bold) and not is_blue_color(prev_word_range):
-                    bold_text += '</strong>'
+                    bold_text += '</b>'
                     paragraph_text += bold_text
                     bold_text = ''
                 if prev_word_range.Bold:
                     bold_text = ''
                 if word_range.Bold:
-                    blue_text += f'<strong><a href="">{smart_text}'
+                    blue_text += f'<b><a href="">{smart_text}'
                 else:
                     blue_text += f'<a href="">{smart_text}'
         else:
             if prev_is_normal and is_end(word_range) and next_word_range is not None and is_blue_color(next_word_range):
-                blue_text += f'</a></span><br />\r'
+                blue_text += f'</a><br />\r'
                 for comment in comments_list:
                     comment_text = comment[0]  # 「コメント対象のテキスト」を取得
                     if f"{comment_text}" in blue_text:
@@ -445,80 +478,74 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
                         if len(comment) > 1 and isinstance(comment[1], str) and "http" in comment[1]:
                             if len(comment) > 1 and isinstance(comment[1], str) and "" in comment[1]:
                                 link = comment[1].replace('','')
-                                blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<span style="text-decoration: underline; color: #e67e23;"><a href="{link}">{comment[0]}')
+                                if alignment is not None and alignment != "left":
+                                    blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<span style="text-decoration: underline; color: #e67e23;"><a href="{link}" style="background-color: #ffffff; {alignment}">{comment[0]}')
+                                else:
+                                    blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<span style="text-decoration: underline; color: #e67e23;"><a href="{link}" style="background-color: #ffffff;">{comment[0]}')
+
                             else:
-                                blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<span style="text-decoration: underline; color: #56a0d6;"><a href"{comment[1]}" target="_blank" "rel="noopener">{comment[0]}')
+                                if alignment is not None and alignment != "left":
+                                    blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href"{comment[1]}" target="_blank" "rel="noopener" style="{alignment}">{comment[0]}').replace('</a>','<span class="m-icon m-icon-blank"><img src="/img/common/icon_newwin.png" alt="別ウィンドウを開く"></span></a>（別ウインドウ）')
+                                else:
+                                    blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href"{comment[1]}" target="_blank" rel="noopener">{comment[0]}').replace('</a>','<span class="m-icon m-icon-blank"><img src="/img/common/icon_newwin.png" alt="別ウィンドウを開く"></span></a>（別ウインドウ）')
                             # print(f"Found match for1: {comment_text}")
                         else:
                             head1_flag=False
                             for i, heading1 in enumerate(heading1_array):
                                 if len(comment) > 1 and isinstance(comment[1], str) and heading1 in comment[1]:
                                     # print("見出し1へのリンクを発見")
-                                    blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<span style="text-decoration: underline; color:  #e67e23;"><a href="#section{i+1}">{comment[0]}')
+                                    if alignment is not None and alignment != "left":
+                                        blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="#anc-{i+1}" style="background-color: #ffffff; {alignment}">{comment[0]}')
+                                    else:
+                                        blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="#anc-{i+1}" style="background-color: #ffffff;">{comment[0]}')
                                     head1_flag=True
                                     break
                             if not head1_flag:
-                                text_count = 0 
+                                text_count=0
                                 for row, sublist in enumerate(heading2_array):
                                     for col, heading2 in enumerate(sublist):
                                         text_count += 1
-                                        # `heading2` がリストかどうかを確認して処理
-                                        if isinstance(heading2, list):
-                                            # リスト内の要素に対して照合
-                                            for heading in heading2:
-                                                if len(comment) > 1 and heading in comment[1]:
-                                                    # 見出し2へのリンクを発見した場合
-                                                    blue_text = blue_text.replace(
-                                                            f'<a href="">{comment[0]}',
-                                                            f'<span style="text-decoration: underline; color: #e67e23;"><a href="#text{text_count}">{comment[0]}'
-                                                        )
-                                                    break
-                                        else:
-                                            # `heading2` がリストでない場合の処理
-                                            if len(comment) > 1 and heading2 in comment[1]:
-                                                # 見出し2へのリンクを発見した場合
-                                                blue_text = blue_text.replace(
-                                                    f'<a href="">{comment[0]}',
-                                                    f'<span style="text-decoration: underline; color: #e67e23;"><a href="#text{text_count}">{comment[0]}'
-                                                )
-                                        
-                                        # テキストが照合された後にカウントをインクリメント
-                                        text_count += 1
+                                        if heading2 in comment[1]:
+                                            # print("見出し2へのリンクを発見")
+                                            if alignment is not None and alignment != "left":
+                                                blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="#anc{text_count}" style="background-color: #ffffff; {alignment}">{comment[0]}')
+                                            else:
+                                                blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="#anc{text_count}" style="background-color: #ffffff;">{comment[0]}')
+                            # print(f"Found match for2: {comment_text}")
                         break
             else:
                 smart_text.replace('\r', '\n')
                 blue_text += smart_text
-                blue_text = blue_text.replace('</a></span></p>\r<p><a href="">','</a></span><br />\r<a href="">')
+                blue_text = blue_text.replace('</a></p>\r<p><a href="">','</a><br />\r<a href="">')
                 print(repr(f"blue_text:{blue_text},box_count:{box_count},last_text_count:{last_text_count}"))
                 if next_word_range is not None and (is_end(next_word_range) or is_heading1(next_word_range) or is_heading2(next_word_range) or not is_blue_color(next_word_range) or next_is_table) and (last_text_count < len(box_text) and box_count < (len(box_text[last_text_count]) - 1)):           
-                    if(is_similar(f'{box_text[last_text_count][box_count]}' , blue_text.replace('<strong>','').replace('</strong>','').replace('<a href="">','').replace('</a>','').replace('<p>','').replace('</p>','').replace('/r','').replace('<br />','')) or f'{box_text[last_text_count][box_count]}' in blue_text.replace('<strong>','').replace('</strong>','').replace('<a href="">','').replace('</a>','').replace('<p>','').replace('</p>','')):
+                    if(is_similar(f'{box_text[last_text_count][box_count]}' , blue_text.replace('<b>','').replace('</b>','').replace('<a href="">','').replace('</a>','').replace('<p>','').replace('</p>','').replace('/r','').replace('<br />','')) or f'{box_text[last_text_count][box_count]}' in blue_text.replace('<b>','').replace('</b>','').replace('<a href="">','').replace('</a>','').replace('<p>','').replace('</p>','')):
                         if box_count == 0:
-                            combined_box_text = '<div class="solution" style="padding:10px 15px;border:1px solid #000000;">'
+                            combined_box_text = '<div style="border: solid windowtext 1.0pt; padding: 10px 10px 20px;  margin: 20px 0;">'
                         if word_range.bold:
-                            combined_box_text += '<a href=""><strong>' + box_text[last_text_count][box_count] + '</strong></a><br />\r'
+                            combined_box_text += '<a href=""><b>' + box_text[last_text_count][box_count] + '</b></a><br />\r'
                         else:
                             combined_box_text += '<a href="">' + box_text[last_text_count][box_count] + '</a><br />\r'
                         print(repr(f'combined_box_text: {combined_box_text}'))
                         diff_text = get_text_difference(box_text[last_text_count][box_count], blue_text)
                         # if word_range.bold:
-                        #     blue_text = blue_text.replace('</a><br />\r','</a></strong><br />\r')
+                        #     blue_text = blue_text.replace('</a><br />\r','</a></b><br />\r')
                         # else:
                         #     blue_text += f'</a><br />\r'
                         box_count += 1
                         blue_text = ''
                 elif last_text_count < len(box_text):
-                    # blue_text_list内のすべての文字列に対して比較
-                    if box_count == (len(box_text[last_text_count]) - 1) and (is_similar(f'{box_last_text[last_text_count]}', blue_text.replace('<a href="">','').replace('</a>','').replace('<strong>','').replace('</strong>','').replace('<p>','').replace('</p>','').replace('\r','').replace('<br />','')) or f'{box_last_text[last_text_count]}' in blue_text.replace('<a href="">','').replace('</a>','').replace('<strong>','').replace('</strong>','')):
+                    if box_count == (len(box_text[last_text_count]) - 1) and (is_similar(f'{box_last_text[last_text_count]}' , blue_text.replace('<a href="">','').replace('</a>','').replace('<b>','').replace('</b>','').replace('<p>','').replace('</p>','').replace('\r','').replace('<br />','')) or f'{box_last_text[last_text_count]}' in blue_text.replace('<a href="">','').replace('</a>','').replace('<b>','').replace('</b>','')):
                         blue_text = blue_text.replace('<a href=""></a>', '')
                         text_count = 0
                         # 新しいリンク番号の付与
                         if box_count == 0:
-                            combined_box_text = '<div class="solution" style="padding:10px 15px;border:1px solid #000000;">'
+                            combined_box_text = '<div style="border: solid windowtext 1.0pt; padding: 10px 10px 20px;  margin: 20px 0;">'
                         if word_range.bold:
-                            blue_text = combined_box_text + '<a href=""><strong>' + box_last_text[last_text_count] + '</strong></a></div>\r'
+                            blue_text = combined_box_text + '<a href=""><b>' + box_last_text[last_text_count] + '</b></a></div>\r'
                         else:
-                            blue_text = combined_box_text + '<a href="">' + box_last_text[last_text_count] + '</a></div>\r'                                
-                        blue_text = process_blue_text(blue_text,h3_count)
+                            blue_text = combined_box_text + '<a href="">' + box_last_text[last_text_count] + '</a></div>\r'
+                        blue_text = process_blue_text(blue_text,h2_count,alignment)
                         print(repr(blue_text))
                         print(repr(f'combined_box_text: {combined_box_text}'))
                         last_text_count += 1
@@ -532,7 +559,7 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
 
         if prev_is_normal and next_word_range is not None and not is_blue_color(next_word_range) or next_is_table:
             # normal_text が None または空かどうか確認し、初期化
-            blue_text = blue_text.replace('</a></span></p>\r<p><a href="">','</a></span><br />\r<a href="">')
+            blue_text = blue_text.replace('</a></p>\r<p><a href="">','</a><br />\r<a href="">')
             if blue_text is None or blue_text == '':
                 blue_text_list = []
             else:
@@ -540,18 +567,18 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
             print(repr(f"blue_text:{blue_text},box_count:{box_count},last_text_count:{last_text_count}"))
         
             smart_text.replace('\r', '\n')
-            if next_word_range is not None and is_end(next_word_range) or is_heading1(next_word_range) or is_heading2(next_word_range) or not is_blue_color(next_word_range):
-                if next_word_range is not None and (is_end(next_word_range) or is_heading1(next_word_range) or is_heading2(next_word_range)):
+            if next_word_range is not None and (is_end(next_word_range) or is_heading1(next_word_range) or is_heading2(next_word_range) or not is_blue_color(next_word_range)):
+                if next_word_range is not None and is_end(next_word_range):
                         if word_range.Bold:
-                            blue_text += f'</a></span></strong></p>\r'
+                            blue_text += f'</a></b></p>\r'
                         else:
-                            blue_text += f'</a></span></p>'
+                            blue_text += f'</a></p>'
                         prev_is_normal = False
                 else:
                     if word_range.Bold and next_word_range is not None and not next_word_range.Bold:
-                        blue_text += f'</a></span></strong>'
+                        blue_text += f'</a></b>'
                     else:
-                        blue_text += f'</a></span>'
+                        blue_text += f'</a>'
                 
             for comment in comments_list:
                 comment_text = comment[0]  # 「コメント対象のテキスト」を取得
@@ -560,9 +587,15 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
                     if len(comment) > 1 and isinstance(comment[1], str) and "http" in comment[1]:
                         if "" in comment[1]:
                             link = comment[1].replace('','')
-                            blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<span style="text-decoration: underline; color: #e67e23;"><a href="{link}">{comment[0]}')
+                            if alignment is not None and alignment != "left":
+                                blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="{link}" style="background-color: #ffffff; {alignment}">{comment[0]}')
+                            else:
+                                blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="{link}" style="background-color: #ffffff;">{comment[0]}')
                         else:
-                            blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<span style="text-decoration: underline; color: #56a0d6;"><a href="{comment[1]}" target="_blank">{comment[0]}')
+                            if alignment is not None and alignment != "left":
+                                blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="{comment[1]}" target="_blank" rel="noopener; style="{alignment}">{comment[0]}')
+                            else:
+                                blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="{comment[1]}" target="_blank" rel="noopener";>{comment[0]}')
                         # print(f"Found match for3: {comment_text}")
                     else:
                         head1_flag=False
@@ -573,72 +606,65 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
                                 cleaned_comment_link_1 = remove_surrounding_text(comment_link_1)
                                 if is_similar(heading1, cleaned_comment_link_1):
                                     # print("見出し1へのリンクを発見")
-                                    blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<span style="text-decoration: underline; color: #e67e23;"><a href="#section{i+1}">{comment[0]}')
+                                    if alignment is not None and alignment != "left":
+                                        blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="#anc{i+1}" style="background-color: #ffffff; {alignment}">{comment[0]}')
+                                    else:
+                                        blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="#anc{i+1}" style="background-color: #ffffff;">{comment[0]}')
                                     head1_flag=True
                                     break
                         if not head1_flag:
-                            text_count = 0
                             for row, sublist in enumerate(heading2_array):
                                 for col, heading2 in enumerate(sublist):
-                                    # `heading2` がリストかどうかを確認して処理
-                                    text_count += 1
-                                    if isinstance(heading2, list):
-                                        # リスト内の要素に対して照合
-                                        for heading in heading2:
-                                            if len(comment) > 1 and heading in comment[1]:
-                                                # 見出し2へのリンクを発見した場合
-                                                blue_text = blue_text.replace(
-                                                    f'<a href="">{comment[0]}',
-                                                    f'<span style="text-decoration: underline; color: #e67e23;"><a href="#text{text_count}">{comment[0]}'
-                                                )
-                                                break
-                                    else:
-                                        # `heading2` がリストでない場合の処理
-                                        if len(comment) > 1 and len(comment) > 1 and heading2 in comment[1]:
-                                        # 見出し2へのリンクを発見した場合
-                                            blue_text = blue_text.replace(
-                                                f'<a href="">{comment[0]}',
-                                                f'<span style="text-decoration: underline; color: #e67e23;"><a href="#text{text_count}">{comment[0]}'
-                                            )
-                                            break
+                                    # print(f"heading2:{heading2},comment[1]:{comment[1]}")
+                                    if heading2 in comment[1]:
+                                        # print("見出し2へのリンクを発見")
+                                        if alignment is not None and alignment != "left":
+                                            blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="#text{text_count}" style="background-color: #ffffff; {alignment}">{comment[0]}')
+                                        else:
+                                            blue_text = blue_text.replace(f'<a href="">{comment[0]}',f'<a href="#text{text_count}" style="background-color: #ffffff;">{comment[0]}')
+                                        break
                         # print(f"Found match for4: {comment_text}")
                     break
-            if next_word_range is not None and is_end(next_word_range) or is_heading1(next_word_range) or is_heading2(next_word_range):
-                blue_text = blue_text.replace('<span style="text-decoration: underline; color: #e67e23;"><a href=""></a></span>','').replace('<span style="text-decoration: underline; color: #56a0d6;"><a href=""></a></span>','').replace('\r\r','\r').replace('\r</li>','</li>').replace('<a href=""></a>','')
+            if next_word_range is not None and (is_end(next_word_range) or is_heading1(next_word_range) or is_heading2(next_word_range) or next_is_table):
+                blue_text = blue_text.replace('<a href=""></a>','').replace('<a href=""></a>','').replace('\r\r','\r').replace('\r</li>','</li>')
+                if box_count != 0:
+                    last_text_count += 1
                 box_count = 0
                 paragraph_text += blue_text
                 blue_text = ''
                 normal_text = ''
     # ハイライトの開始
-    elif is_yellow_color(word_range):
+    elif is_Turquoise_color(word_range):
         # bold_text=remove_duplicate_numbers_with_ret(bold_text)
-        # highlighted_text += normal_text
-        # normal_text = ''
-        if (prev_word_range is not None and not is_end(prev_word_range) and prev_word_range.Bold) and not is_yellow_color(prev_word_range):
-            bold_text += '</strong>'
+        highlighted_text += normal_text
+        normal_text = ''
+        if (prev_word_range is not None and not is_end(prev_word_range) and prev_word_range.Bold) and not is_Turquoise_color(prev_word_range):
+            bold_text += '</b>'
             # paragraph_text += bold_text
             highlighted_text += bold_text
             bold_text = ''
-        if prev_word_range is not None and (is_end(prev_word_range) or (not is_yellow_color(prev_word_range)) or is_heading1(prev_word_range) or is_heading2(prev_word_range)):#前回が太字でない場合
+        if prev_word_range is not None and (is_end(prev_word_range) or (not is_Turquoise_color(prev_word_range)) or is_heading1(prev_word_range) or is_heading2(prev_word_range)):#前回が太字でない場合
             smart_text.replace('\r', '\n')
             if not prev_is_normal:
-                highlighted_text += f'<p><span style="background:linear-gradient(transparent 60%, #ffe57f 60%);"><strong>{smart_text}'
+                highlighted_text += f'<p><span style="background-color: #00ffff;"><b>{smart_text}'
                 prev_is_normal = True
             else:
                 if prev_word_range.Bold:
                     bold_text = ''
-                highlighted_text += f'<span style="background:linear-gradient(transparent 60%, #ffe57f 60%);"><strong>{smart_text}'
+                highlighted_text += f'<span style="background-color: #00ffff;"><b>{smart_text}'
         else:
             highlighted_text += smart_text
-        
-        if prev_is_normal and (next_word_range is not None and (not is_yellow_color(next_word_range) and not is_heading1(next_word_range) and not is_heading2(next_word_range) or is_end(next_word_range))):
-            highlighted_text = highlighted_text.replace('<span style="background:linear-gradient(transparent 60%, #ffe57f 60%);"><strong></strong></span>','').replace('</strong></span><span style="background:linear-gradient(transparent 60%, #ffe57f 60%);"><strong>','')
+
+        if prev_is_normal and next_word_range is not None and (not is_Turquoise_color(next_word_range) and not is_heading1(next_word_range) and not is_heading2(next_word_range) or is_end(next_word_range)):
+            highlighted_text = highlighted_text.replace('<span style="background-color: #00ffff;"><b></b></span>','').replace('</b></span><span style="background-color: #00ffff;"><b>','')
             # print(highlighted_text)
-            if last_text_count < len(box_last_text) and (box_count == (len(box_text[last_text_count]) - 1) and (is_similar(f'{box_last_text[last_text_count]}' , highlighted_text.replace('</strong></span>','').replace('<span style="background:linear-gradient(transparent 60%, #ffe57f 60%);"><strong>','').replace('<strong>','').replace('</strong>','')) or f'{box_last_text[last_text_count]}' in highlighted_text.replace('</strong></span>','').replace('<span style="background:linear-gradient(transparent 60%, #ffe57f 60%);"><strong>','').replace('<strong>','').replace('</strong>',''))):#{smart_text}がない
+            # normal_text が None または空かどうか確認し、初期化
+            if last_text_count < len(box_last_text) and box_count == (len(box_text[last_text_count]) - 1) and (is_similar(f'{box_last_text[last_text_count]}' , highlighted_text.replace('</b></span>','').replace('<span style="background-color: #00ffff;"><b>','').replace('<b>','').replace('</b>',''))):#{smart_text}がない
                 if box_count == 0:
-                    combined_box_text = '<div class="solution" style="padding:10px 15px;border:1px solid #000000;">'
-                highlighted_text = combined_box_text + '<span style="background:linear-gradient(transparent 60%, #ffe57f 60%);"><strong>' + box_last_text[last_text_count] + '</strong></span></div>\r'
-                highlighted_text = process_normal_text(highlighted_text)    
+                    combined_box_text = '<div style="border: solid windowtext 1.0pt; padding: 10px 10px 20px;  margin: 20px 0;">'
+                highlighted_text = combined_box_text + '<span style="background-color: #00ffff;"><b>' + box_last_text[last_text_count] + '</b></span></div>\r'
+                highlighted_text = process_normal_text(highlighted_text)
+                print(f'highlighted_text:{highlighted_text}')  
                 last_text_count += 1
                 box_count = 0
                 combined_box_text = ''
@@ -648,24 +674,26 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
                 highlighted_text = ''
                 normal_text = ''
             else:
-                if next_word_range is not None and (is_end(next_word_range) or is_heading1(next_word_range) or is_heading2(next_word_range)) or '。'in f"{smart_text}":
-                    if last_text_count < len(box_text) and box_count < len(box_text[last_text_count]) and f'{box_text[last_text_count][box_count]}' in highlighted_text.replace('</strong></span>','').replace('<span class="marker"><strong>','').replace('<strong>','').replace('</strong>',''):
-                        highlighted_text += f'</strong></span><br />\r'
+                if next_word_range is not None and (is_end(next_word_range) or is_heading1(next_word_range) or is_heading2(next_word_range) or next_is_table):
+                    # normal_text が None または空かどうか確認し、初期化
+                    if last_text_count < len(box_text) and box_count < len(box_text[last_text_count]) and f'{box_text[last_text_count][box_count]}' in highlighted_text.replace('</b></span>','').replace('<span style="background-color: #00ffff;"><b>','').replace('<b>','').replace('</b>',''):
+                        highlighted_text += f'</b></span><br />\r'
                         if box_count == 0:
-                            combined_box_text = '<div class="solution" style="padding:10px 15px;border:1px solid #000000;">'
-                        combined_box_text += '<span style="background:linear-gradient(transparent 60%, #ffe57f 60%);"><strong>' + box_text[last_text_count][box_count] + '</strong></span><br />\r'
+                            combined_box_text = '<div style="border: solid windowtext 1.0pt; padding: 10px 10px 20px;  margin: 20px 0;">'
+                        combined_box_text += '<span style="background-color: #00ffff;"><b>' + box_text[last_text_count][box_count] + '</b></span><br />\r'
                         box_count += 1
-                        highlighted_text = ''
                     else:
-                        highlighted_text += f'</strong></span></p>\r'
+                        highlighted_text += f'</b></span></p>\r'
                         prev_is_normal = False
                         paragraph_text += normal_text + highlighted_text
                         highlighted_text = ''
                         normal_text = ''
+                        if box_count != 0:
+                            last_text_count += 1
                         box_count = 0
                         combined_box_text = ''
                 else:
-                    highlighted_text += f'</strong></span>'#ここで<p></strong>が発生している
+                    highlighted_text += f'</b></span>'#ここで<p></b>が発生している
                     paragraph_text += normal_text + highlighted_text
                     highlighted_text = ''
                     normal_text = ''
@@ -677,28 +705,34 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
         normal_text = ''
         # bold_text=remove_duplicate_numbers_with_ret(bold_text)
         if prev_word_range is not None:
-            if is_end(prev_word_range) or not prev_word_range.Bold or is_yellow_color(prev_word_range) or is_heading1(prev_word_range) or is_heading2(prev_word_range):#前回が太字でない場合
+            if is_end(prev_word_range) or not prev_word_range.Bold or is_Turquoise_color(prev_word_range) or is_heading1(prev_word_range) or is_heading2(prev_word_range):#前回が太字でない場合
                 if box_count == 0:
                     bold_text = ''
                 if not prev_is_normal:#テキストが始まってもない場合
-                    if next_word_range is not None and is_end(next_word_range) or is_end(word_range):
-                        bold_text += f'<p><strong>{smart_text}</strong></p>'
+                    if next_word_range is not None and (is_end(next_word_range) or is_heading1(next_word_range) or is_heading2(next_word_range) or next_is_table) or is_end(word_range):
+                        bold_text += f'<p><b>{smart_text}</b></p>'
                         paragraph_text += normal_text + bold_text
                         bold_text = ''
                         normal_text = ''
                     else:
-                        bold_text += f'<p><strong>{smart_text}'
+                        bold_text += f'<p><b>{smart_text}'
                         prev_is_normal = True
                 else:
-                    bold_text += f'<strong>{smart_text}'
+                    bold_text += f'<b>{smart_text}'
             else:
                 bold_text += smart_text
-            if prev_is_normal and ((next_word_range is not None and not next_word_range.Bold) and not is_heading1(next_word_range) and not is_heading2(next_word_range) or is_end(next_word_range)):
-                bold_text = bold_text.replace('<strong></strong>','').replace('</strong><strong>','')
+            if prev_is_normal and (next_word_range is not None and (not next_word_range.Bold and not is_heading1(next_word_range) and not is_heading2(next_word_range) or is_end(next_word_range))):
+                bold_text = bold_text.replace('<b></b>','').replace('</b><b>','')
+                # print(bold_text)
                 if last_text_count < len(box_last_text) and f'{box_last_text[last_text_count]}' in bold_text:#{smart_text}がない
                     if box_count == 0:
-                        combined_box_text = '<div class="solution" style="padding:10px 15px;border:1px solid #000000;">'
-                    bold_text = combined_box_text + '<strong>' + box_last_text[last_text_count] + '</strong></div>\r'
+                        combined_box_text = '<div style="border: solid windowtext 1.0pt; padding: 10px 10px 20px;  margin: 20px 0;">'
+                    bold_text = combined_box_text + '<b>' + box_last_text[last_text_count] + '</b></div>\r'
+                    # print(f'bold_text:{bold_text}')
+                    # bold_text = bold_text.replace('<p>', '<div style="border: solid windowtext 1.0pt; padding: 10px 10px 20px;  margin: 20px 0;">') + '</b></div>\r'
+                    # bold_text = bold_text.replace('<br />\r</b></div>','\r</b></div>')
+                    # if '<b>・' in bold_text:
+                    #     bold_text = bold_text.replace('<div style="border: solid windowtext 1.0pt; padding: 10px 10px 20px;  margin: 20px 0;"><b>','<div style="border: solid windowtext 1.0pt; padding: 10px 10px 20px;  margin: 20px 0;"><b><ul>').replace('<b>・','<li><b>').replace('</b>','</b></li>').replace('<br />','').replace('</b></li></div>','</b></li></ul></div>')
                     bold_text = process_normal_text(bold_text)
                     bold_text = bold_text.replace('\n','\r').replace('<br />','<br />\r').replace('\r\r','\r')
                     last_text_count += 1
@@ -710,38 +744,56 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
                     bold_text = ''
                     normal_text = ''
                 else:
-                    if next_word_range is not None and is_end(next_word_range) or is_heading1(next_word_range) or is_heading2(next_word_range):
+                    if next_word_range is not None and (is_end(next_word_range) or is_heading1(next_word_range) or is_heading2(next_word_range)):
                         if last_text_count < len(box_text) and box_count < len(box_text[last_text_count]) and f'{box_text[last_text_count][box_count]}' in bold_text:
-                            bold_text += f'</strong><br />\r'
+                            bold_text += f'</b><br />\r'
                             if box_count == 0:
-                                combined_box_text = '<div style="background:#ffffff;border:1px solid #cccccc;padding:5px 10px;">'
-                            combined_box_text += '<strong>' + box_text[last_text_count][box_count] + '</strong><br />\r'
+                                combined_box_text = '<div style="border: solid windowtext 1.0pt; padding: 10px 10px 20px;  margin: 20px 0;">'
+                            combined_box_text += '<b>' + box_text[last_text_count][box_count] + '</b><br />\r'
                             box_count += 1
-                            bold_text = ''
                         else:
-                            bold_text += f'</strong></p>\r'
+                            bold_text += f'</b></p>\r'
                             prev_is_normal = False
                             paragraph_text += normal_text + bold_text
                             bold_text = ''
                             normal_text = ''
+                            if box_count != 0:
+                                last_text_count += 1
                             box_count = 0
                             combined_box_text= ''
                     else:
-                        bold_text += f'</strong>'
+                        bold_text += f'</b>'
                         if box_count == 0:
                             paragraph_text += normal_text + bold_text
                         bold_text = ''
                         normal_text = ''
     # マーカーや青色のテキスト以外のテキスト
-    elif next_word_range is not None and is_end(next_word_range):
+    elif next_word_range is not None and (is_end(next_word_range) or is_heading1(next_word_range) or is_heading2(next_word_range))  or '。'in f"{smart_text}":
         normal_text += f'{smart_text}'
         if not prev_is_normal:
             paragraph_text += f'<p>{smart_text}</p>'
         else:
+            for hyperlink in hyperlink_list:
+                hyperlink_text = hyperlink[0]  # 「コメント対象のテキスト」を取得
+                if f"{hyperlink_text}" in normal_text:
+                    # 条件を満たした場合の処理をここに記述
+                    if len(hyperlink) > 1 and isinstance(hyperlink[1], str) and "http" in hyperlink[1]:
+                        if "" in hyperlink[1]:
+                            link = hyperlink[1].replace('','')
+                            if alignment is not None and alignment != "left":
+                                normal_text = normal_text.replace(f'{hyperlink[0]}',f'<a href="{link}" style="background-color: #ffffff; {alignment}">{hyperlink[0]}</a>')
+                            else:
+                                normal_text = normal_text.replace(f'{hyperlink[0]}',f'<a href="{link}" style="background-color: #ffffff;">{hyperlink[0]}</a>')
+                        else:
+                            if alignment is not None and alignment != "left":
+                                normal_text = normal_text.replace(f'{hyperlink[0]}',f'<a href="{hyperlink[1]}" target="_blank; rel="noopener"; style="{alignment}">{hyperlink[0]}</a>')
+                            else:
+                                normal_text = normal_text.replace(f'{hyperlink[0]}',f'<a href="{hyperlink[1]}" target="_blank"; rel="noopener";>{hyperlink[0]}</a>')
+                        # print(f"Found match for3: {comment_text}")
             if last_text_count < len(box_last_text) and is_similar(f'{box_last_text[last_text_count]}', normal_text.replace('<p>','').replace('</p>','').replace('<br />','')):#{smart_text}がない
                 normal_text = normal_text.replace('\n','\r')
                 if box_count == 0:
-                    combined_box_text = '<div style="background:#ffffff;border:1px solid #cccccc;padding:5px 10px;">'
+                    combined_box_text = '<div style="border: solid windowtext 1.0pt; padding: 10px 10px 20px;  margin: 20px 0;">'
                 normal_text = combined_box_text + box_last_text[last_text_count] + '</div>\r'
                 normal_text = process_normal_text(normal_text)
                 # print(f'normal_text:{normal_text}')
@@ -756,7 +808,7 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
                 # normal_text += f'<br />'
                 normal_text = ''
                 if box_count == 0:
-                    combined_box_text = '<div style="background:#ffffff;border:1px solid #cccccc;padding:5px 10px;">'
+                    combined_box_text = '<div style="border: solid windowtext 1.0pt; padding: 10px 10px 20px;  margin: 20px 0;">'
                 combined_box_text += box_text[last_text_count][box_count] + '<br />\r'
                 print(repr(f'combined_box_text: {combined_box_text}'))
                 box_count += 1
@@ -765,6 +817,8 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
                 paragraph_text += normal_text
                 normal_text = ''
                 prev_is_normal = False
+                if box_count != 0:
+                    last_text_count += 1
                 box_count = 0
                 combined_box_text = ''
     elif prev_is_normal: #次で終わりでないが、テキストはすでに始まっている場合
@@ -776,11 +830,9 @@ def check_tag(prev_word_range, word_range, next_word_range, paragraph_text, norm
         if not is_end(word_range):
             normal_text += f'<p>{smart_text}'
             prev_is_normal = True
-    # else:
-    #     paragraph_text += f'{smart_text}'#なぜか数十個の\rが表示される,本来is_end()で引っかかるはず
-    return paragraph_text, normal_text, bold_text, blue_text, highlighted_text,hyper_link_text, hyper_text_count, box_text, box_count, box_last_text, last_text_count, comments_list, links_count, h2_count,prev_is_normal,combined_box_text,diff_text
+    return paragraph_text, normal_text, bold_text, blue_text, highlighted_text,hyperlink_list, hyper_text_count, box_text, box_count, box_last_text, last_text_count, comments_list, links_count, h2_count,prev_is_normal,combined_box_text,diff_text
 
-def extract_text_with_markup(docx_file, html_tables,border_file_path,hyper_links_file_path,links_file_path,heading1_file_path,heading2_file_path):
+def extract_text_with_markup(docx_file, html_tables,border_file_path,hyperlink_file_path,links_file_path,heading1_file_path,heading2_file_path):
     # コマンドライン引数をパースするための設定
     parser = argparse.ArgumentParser(description='Process some files.')
     parser.add_argument('--config', required=True, help='Path to the config JSON file')
@@ -808,7 +860,7 @@ def extract_text_with_markup(docx_file, html_tables,border_file_path,hyper_links
     output_dir = os.path.join(base_dir, "output", f"{number}")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    docx_file_name_modified = docx_raw_file_name.replace('.docx', '_without_toc_final_no_images.docx')
+    docx_file_name_modified = docx_raw_file_name.replace('.docx', '_without_toc_final_no_images_remove_hyperlinks_remove_comments.docx')
     docx_file_path_2 = os.path.abspath(os.path.join(output_dir, docx_file_name_modified))
 
 
@@ -831,10 +883,11 @@ def extract_text_with_markup(docx_file, html_tables,border_file_path,hyper_links
     # print(f"{box_last_text}")
     last_text_count = 0
 
-    if not os.path.exists(hyper_links_file_path):
-        raise FileNotFoundError(f"File not found: {hyper_links_file_path}")
-    hyper_link_text = get_hyper_link_text.read_text_file_to_list(hyper_links_file_path)
-    #print(hyper_link_text[0])
+    if not os.path.exists(hyperlink_file_path):
+        raise FileNotFoundError(f"File not found: {hyperlink_file_path}")
+    hyperlink_list = []
+    hyperlink_list = load_comments_from_file(hyperlink_file_path)
+    #print(hyperlink_list[0])
     hyper_text_count = 0
 
     comments_list = []
@@ -882,7 +935,8 @@ def extract_text_with_markup(docx_file, html_tables,border_file_path,hyper_links
     in_table = False
     wdInTable = 12
     h2_count = 0
-    h3_count = 1
+    h5_count = 1
+    alignment="left"
 
     # HTMLテーブルをリストとして管理
     table_index = 0
@@ -903,6 +957,7 @@ def extract_text_with_markup(docx_file, html_tables,border_file_path,hyper_links
                 next_is_table = False
             if not word_range.Information(wdInTable):#表のテキストでない
                 in_table = False#表の初めのテキストでない
+                alignment = get_paragraph_text_with_alignment(word_range)
                 word_is_duplicate = check_prev_digits_in_word_range(word_range, prev_word_range)
                 smart_text = f'{word_range.Text}'
                 if word_is_duplicate:
@@ -916,41 +971,48 @@ def extract_text_with_markup(docx_file, html_tables,border_file_path,hyper_links
                 if is_heading1(word_range):
                     normal_text = ''
                     bold_text = ''
+                    if prev_is_normal:
+                        paragraph_text += '</p>'
+                        prev_is_normal = False
                     if not is_heading1(prev_word_range):
                         h2_count += 1
-                        paragraph_text += f'<h2 id="section{h2_count}">'
+                        h5_count = 1
+                        paragraph_text += f'<h2 id="anc-{h2_count}" class="headLine2">'
                     # 見出し1スタイルのテキストである場合の処理
                     h3_text += smart_text
                     if next_word_range is not None and not is_heading1(next_word_range) or next_is_table:
                         h3_text += f"</h2>\r"
                         paragraph_text += h3_text
                         h3_text = ''
-                        paragraph_text, normal_text, bold_text, blue_text, highlighted_text,hyper_link_text, hyper_text_count, box_text, box_count, box_last_text, last_text_count, comments_list, links_count, h2_count, prev_is_normal,combined_box_text,diff_text = check_tag(
-            prev_word_range, word_range, next_word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text,hyper_link_text, hyper_text_count, box_text, box_count, box_last_text,last_text_count, comments_list, links_count,heading1_array,heading2_array, h2_count,h3_count, prev_is_normal, next_is_table, smart_text,combined_box_text,diff_text)
+                        paragraph_text, normal_text, bold_text, blue_text, highlighted_text,hyperlink_list, hyper_text_count, box_text, box_count, box_last_text, last_text_count, comments_list, links_count, h2_count, prev_is_normal,combined_box_text,diff_text = check_tag(
+            prev_word_range, word_range, next_word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text,hyperlink_list, hyper_text_count, box_text, box_count, box_last_text,last_text_count, comments_list, links_count,heading1_array,heading2_array, h2_count,h5_count, prev_is_normal, next_is_table, smart_text,combined_box_text,alignment,diff_text)
                 elif is_heading2(word_range):
                     normal_text = ''
                     bold_text = ''
+                    if prev_is_normal:
+                        paragraph_text += '</p>'
+                        prev_is_normal = False
                     if not is_heading2(prev_word_range):
-                        paragraph_text += f'<h3 id="text{h3_count}">'
-                        h3_count += 1
+                        paragraph_text += f'<h5 id="anc{h2_count}-{h5_count}" class="headLine5" style="font-size: 2.1rem; margin-top: 25px;">'
+                        h5_count += 1
                     # 見出し1スタイルのテキストである場合の処理
                     h4_text += smart_text
                     if next_word_range is not None and not is_heading2(next_word_range) or next_is_table:
-                        h4_text += f"</h3>\r"
+                        h4_text += f"</h5>\r"
                         paragraph_text += h4_text
                         h4_text = ''
-                        paragraph_text, normal_text, bold_text, blue_text, highlighted_text,hyper_link_text, hyper_text_count, box_text, box_count, box_last_text,last_text_count, comments_list, links_count, h2_count, prev_is_normal,combined_box_text,diff_text = check_tag(
-            prev_word_range, word_range, next_word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text,hyper_link_text, hyper_text_count, box_text, box_count, box_last_text, last_text_count, comments_list, links_count, heading1_array,heading2_array, h2_count,h3_count, prev_is_normal, next_is_table, smart_text,combined_box_text,diff_text)
+                        paragraph_text, normal_text, bold_text, blue_text, highlighted_text,hyperlink_list, hyper_text_count, box_text, box_count, box_last_text,last_text_count, comments_list, links_count, h2_count, prev_is_normal,combined_box_text,diff_text = check_tag(
+            prev_word_range, word_range, next_word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text,hyperlink_list, hyper_text_count, box_text, box_count, box_last_text, last_text_count, comments_list, links_count, heading1_array,heading2_array, h2_count,h5_count, prev_is_normal, next_is_table, smart_text,combined_box_text,alignment,diff_text)
                 else:
                     if word_range is not None:
-                        paragraph_text, normal_text, bold_text, blue_text, highlighted_text,hyper_link_text, hyper_text_count, box_text, box_count, box_last_text,last_text_count, comments_list, links_count, h2_count, prev_is_normal,combined_box_text,diff_text = check_tag(
-            prev_word_range, word_range, next_word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text,hyper_link_text, hyper_text_count, box_text, box_count, box_last_text, last_text_count, comments_list, links_count, heading1_array,heading2_array, h2_count,h3_count, prev_is_normal, next_is_table, smart_text,combined_box_text,diff_text)
+                        paragraph_text, normal_text, bold_text, blue_text, highlighted_text,hyperlink_list, hyper_text_count, box_text, box_count, box_last_text,last_text_count, comments_list, links_count, h2_count, prev_is_normal,combined_box_text,diff_text = check_tag(
+            prev_word_range, word_range, next_word_range, paragraph_text, normal_text, bold_text, blue_text, highlighted_text,hyperlink_list, hyper_text_count, box_text, box_count, box_last_text, last_text_count, comments_list, links_count, heading1_array,heading2_array, h2_count,h5_count, prev_is_normal, next_is_table, smart_text,combined_box_text,alignment,diff_text)
             else:
                 if not in_table:
                     print(2)
                      # リストにあるHTMLテーブルを順番に追加
                     if table_index < len(html_tables):
-                        html_tables[table_index] = replace_counter(html_tables[table_index],h3_count)
+                        html_tables[table_index] = replace_counter(html_tables[table_index],h2_count,h5_count)
                         paragraph_text += html_tables[table_index]
                         table_index += 1
                         print(3)
@@ -958,27 +1020,9 @@ def extract_text_with_markup(docx_file, html_tables,border_file_path,hyper_links
                 
         # テキストが空でない場合のみ処理を行います
         if paragraph_text:
-            paragraph_text = paragraph_text.replace('\r\r','').replace('<p>/</p>','').replace('<strong>\r</strong>','').replace('<strong></strong>','').replace('</strong><strong>','').replace('<p>\r</p>','').replace('<p>\r','<p>').replace('\r\r</p>','</p>').replace('\r</p>','</p>').replace('','').replace('','').replace('','').replace('<p>▼関連記事はこちら</p>\r<p>','<p>▼関連記事はこちら<br />\r').replace('<p>/</p>','').replace('<br />\r</span></div>','\r</span></div>').replace('<p> </p>','').replace('▼関連記事はコチラ</p>\r<p><a','▼関連記事はコチラ<br />\r<a').replace('▼関連記事はコチラ</p>\n<p><a>','▼関連記事はコチラ<br />\n<a').replace('\r</a>','</a>').replace('\n</a>','</a>').replace('<a href="">\r<a href="">','<a href="">').replace('</a></p>\r<p><a','</a><br />\r<a').replace('</a></p>\n<p><a',',</a><br />\r<a').replace('</a></p>\n<p>',',</a><br />\r').replace('\r</h2>','</h2>').replace('\r</h3>','</h3>').replace('<div class="solution" style="padding:10px 15px;border:1px solid #000000;">\r<br />','<div class="solution" style="padding:10px 15px;border:1px solid #000000;">\r').replace('<p></p>','').replace('<a href="">\r</a>','').replace('<a href="">\n</a>','').replace('</a></span></p>\r<p><span style="text-decoration: underline; color: #e67e23;">','</a></span><br />\r<span style="text-decoration: underline; color: #e67e23;">').replace('</a></span></p>\r<p><span style="text-decoration: underline; color: #56a0d6;">','</a></span><br />\r<span style="text-decoration: underline; color: #56a0d6;">').replace('\r<a href=""></a></span>\r','').replace('<a href=""></a></span>','').replace('\r</p>','</p>')
-            paragraph_text += '<div class="cta-entry"><div class="cta-enty-inner"><div class="cta-entry_txt"><p>ナースステップは<br><b>「なぜ転職するのか」</b>の理由を<br>明確にするところから一緒に考えます。</p><p><span>看護師の転職に悩んだら<br>まずはナースステップにご相談ください！</span></p></div><div class="cta-entry_btn"><a href="/entry/"><span>無料</span>60 秒で完了！<br>ナースステップに登録する▶</a></div></div></div>'
-            # while (hyper_text_count < len(hyper_link_text)):
-            #     for comment in comments_list:
-            #         if len(comment) > 1 and hyper_link_text[hyper_text_count] in comment[0]:
-            #             paragraph_text = paragraph_text.replace(f'{hyper_link_text[hyper_text_count]}',f'<span style="text-decoration: underline; color: #56a0d6;"><a href="{comment[1]}" target="_blank">{hyper_link_text[hyper_text_count]}</a></span>')
-            #             hyper_text_count += 1
-            #             print(4)
-            #             break
-            # 文の末尾に数字がある場合、その数字を取り除く
+            paragraph_text = paragraph_text.replace('\r\r','').replace('<p>/</p>','').replace('<b>\r</b>','').replace('<b></b>','').replace('</b><b>','').replace('<p>\r</p>','').replace('<p>\r','<p>').replace('\r</p>','</p>').replace('','').replace('','').replace('','').replace('<p>▼関連記事はこちら</p>\r<p>','<p>▼関連記事はこちら<br />\r').replace('<p>/</p>','').replace('<br />\r</span></div>','\r</span></div>').replace('<p> </p>','').replace('▼関連記事はコチラ</p>\r<p><a','▼関連記事はコチラ<br />\r<a').replace('▼関連記事はコチラ</p>\n<p><a>','▼関連記事はコチラ<br />\n<a').replace('\r</a>','</a>').replace('\n</a>','</a>').replace('<a href="">\r<a href="">','<a href="">').replace('</a></p>\r<p><a','</a><br />\r<a').replace('</a></p>\n<p><a',',</a><br />\r<a').replace('</a></p>\n<p>',',</a><br />\r').replace('\r</h2>','</h2>').replace('\r</h5>','</h5>').replace('<div style="border: solid windowtext 1.0pt; padding: 10px 10px 20px;  margin: 20px 0;">\r<br />','<div style="border: solid windowtext 1.0pt; padding: 10px 10px 20px;  margin: 20px 0;">\r').replace('<p></p>','').replace('<a href="">\r</a>','').replace('<a href="">\n</a>','').replace('</a></p>\r<p><span style="text-decoration: underline; color: #e67e23;">','</a><br />\r<span style="text-decoration: underline; color: #e67e23;">').replace('</a></p>\r<p>','</a><br />\r').replace('\r<a href=""></a>\r','').replace('<a href=""></a>','').replace('</li>\r\r','</li>\r').replace('<p></p>','').replace('<p></b></p>','')
+
             cleaned_text = remove_trailing_digits(paragraph_text)
-            # 連続する数字を1回のみ表示する
-            # cleaned_text = remove_duplicate_numbers_with_ret(cleaned_text)
-            table_contents = '<ul class="cul">\r'
-            num = 1
-            for heading1_text in heading1_array:
-                table_contents += f'<li><a href="#section{num}">{heading1_text}</a></li>\r'
-                num += 1
-            table_contents += '</ul>\r'
-            ctn_text = '<p><!--求人ボタンここから--></p>\r<p><!--%u6C42%u4EBA%u30DC%u30BF%u30F3%u3053%u3053%u304B%u3089--></p>\r<p><!--求人ボタンここから--></p>\r<p class="btn_joblink"><a href="/entry/" class="cont-btn-02">【無料】看護師転職サポート登録！</a></p>'
-            extracted_text += table_contents + ctn_text
             if cleaned_text:
                 extracted_text.append(cleaned_text)
         break
@@ -1004,7 +1048,7 @@ docx_raw_file_path = os.path.abspath(os.path.join(base_dir, data["docx_raw_file_
 table_file_path = os.path.abspath(os.path.join(base_dir, data["table_file_path"]))
 output_file_path = os.path.abspath(os.path.join(base_dir, data["output_file_path"]))
 border_file_path = os.path.abspath(os.path.join(base_dir, data["border_file_path"]))
-hyper_links_file_path = os.path.abspath(os.path.join(base_dir, data["hyper_links_file_path"]))
+hyperlink_file_path = os.path.abspath(os.path.join(base_dir, data["hyperlink_file_path"]))
 links_file_path = os.path.abspath(os.path.join(base_dir, data["links_file_path"]))
 heading1_file_path = os.path.abspath(os.path.join(base_dir, data["heading1_file_path"]))
 heading2_file_path = os.path.abspath(os.path.join(base_dir, data["heading2_file_path"]))
@@ -1020,7 +1064,7 @@ else:
 output_dir = os.path.join(base_dir, "output", f"{number}")
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
-docx_file_name_modified = docx_raw_file_name.replace('.docx', '_without_toc_final_no_images.docx')
+docx_file_name_modified = docx_raw_file_name.replace('.docx', '_without_toc_final_no_images_remove_hyperlinks_remove_comments.docx')
 docx_file_path_2 = os.path.abspath(os.path.join(output_dir, docx_file_name_modified))
 
 
@@ -1029,7 +1073,7 @@ docx_file_path_2 = os.path.abspath(os.path.join(output_dir, docx_file_name_modif
 html_tables = read_html_tables(table_file_path)
 
 # WordファイルのテキストとHTMLテーブルを統合して抽出
-extracted_text_with_markup = extract_text_with_markup(docx_file_path_2, html_tables,border_file_path,hyper_links_file_path,links_file_path,heading1_file_path,heading2_file_path)
+extracted_text_with_markup = extract_text_with_markup(docx_file_path_2, html_tables,border_file_path,hyperlink_file_path,links_file_path,heading1_file_path,heading2_file_path)
 
 print(99)
 html_output = ''.join(extracted_text_with_markup)

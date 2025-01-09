@@ -13,7 +13,7 @@ $inputFolder = "./input"
 $docxFiles = Get-ChildItem -Path $inputFolder -Filter "*.docx"
 
 # カウント変数を初期化
-$count = 1
+$count = 101
 
 # 各.docxファイルについて処理
 foreach ($docxFile in $docxFiles) {
@@ -50,7 +50,7 @@ foreach ($docxFile in $docxFiles) {
     $count++
 }
 
-$count = 1
+$count = 101
 # 生成された各JSONファイルに対してPythonスクリプトを実行
 foreach ($docxFile in $docxFiles) {
     $configJsonPath = "./config_$count.json"

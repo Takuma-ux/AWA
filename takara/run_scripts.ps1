@@ -13,7 +13,7 @@ $inputFolder = "./input"
 $docxFiles = Get-ChildItem -Path $inputFolder -Filter "*.docx"
 
 # カウント変数を初期化
-$count = 112
+$count = 107
 
 # 各.docxファイルについて処理
 foreach ($docxFile in $docxFiles) {
@@ -37,6 +37,7 @@ foreach ($docxFile in $docxFiles) {
         "links_file_path" = "$outputFolder/comments_output_$count.txt"
         "heading1_file_path" = "$outputFolder/heading1_$count.txt"
         "heading2_file_path" = "$outputFolder/heading2_$count.txt"
+        "hyperlink_file_path" = "$outputFolder/hyperlinks_$count.txt"
         "output_file_path" = "$outputFolder/extracted_text_$count.html"
     }
 
@@ -50,18 +51,19 @@ foreach ($docxFile in $docxFiles) {
     $count++
 }
 
-$count = 112
+$count = 107
 # 生成された各JSONファイルに対してPythonスクリプトを実行
 foreach ($docxFile in $docxFiles) {
     $configJsonPath = "./config_$count.json"
     Run-WithPause "python ./main_program/module/delete_top.py --config $configJsonPath"
     Run-WithPause "python ./main_program/module/get_head.py --config $configJsonPath"
-    Run-WithPause "python ./main_program/module/delete_top_table.py --config $configJsonPath" #__final
-    Run-WithPause "python ./main_program/module/delete_img.py --config $configJsonPath"  #__final
-    Run-WithPause "python ./main_program/module/get_hyper_links.py --config $configJsonPath"
+    Run-WithPause "python ./main_program/module/delete_top_table.py --config $configJsonPath"
+    Run-WithPause "python ./main_program/module/delete_img.py --config $configJsonPath"
     Run-WithPause "python ./main_program/module/border-checker.py --config $configJsonPath"
     Run-WithPause "python ./main_program/module/get_links.py --config $configJsonPath"
     Run-WithPause "python ./main_program/module/create_tables.py --config $configJsonPath"
+    Run-WithPause "python ./main_program/module/create_hyperlink_list.py --config $configJsonPath"
+    Run-WithPause "python ./main_program/module/delete_comment.py --config $configJsonPath"
     Run-WithPause "python ./main_program/awa.py --config $configJsonPath"
     $count++
 }

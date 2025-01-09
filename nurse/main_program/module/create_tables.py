@@ -108,9 +108,9 @@ def get_cell_background_color(cell):
             rgb_color = hex_to_rgb(fill_color)
             
             if is_rgb_in_range(rgb_color, orange_rgb_range):
-                return '#ffe8d1'  # オレンジ系の範囲にある場合
+                return '#ffe4c4 '  # オレンジ系の範囲にある場合
             elif is_rgb_in_range(rgb_color, fill_blue_rgb_range):
-                return '#F0F8FF'  # フィルブルー系の範囲にある場合
+                return '#C6D9F1'  # フィルブルー系の範囲にある場合
 
     return None  # 色が特定の範囲にない場合
 
@@ -173,8 +173,8 @@ def create_html_tables(docx_path,links_file_path,heading1_file_path, heading2_fi
                         comment_text = comment[0]  # 「コメント対象のテキスト」を取得
                         if f"{comment_text}" in cell_text:
                             if "http" in comment[1]:
-                                if "https://www.cheer-job.com" in comment[1]:
-                                    # link = comment[1].replace('https://www.cheer-job.com','')
+                                if "" in comment[1]:
+                                    # link = comment[1].replace('','')
                                     blue_text = f'<a href="{comment[1]}">{comment[0]}</a>'
                                 else:
                                     blue_text = f'<a href="{comment[1]}" target="_blank">{comment[0]}</a>'
@@ -196,6 +196,7 @@ def create_html_tables(docx_path,links_file_path,heading1_file_path, heading2_fi
                             break
                     if not head1_flag:
                         blue_text = f'<a href="">{cell_text}</a>'
+                    blue_text = blue_text.replace('<a','<span style="color: #56a0d6;"><a').replace('</a>','</a></span>')
                     html += blue_text
                 else:
                     html += cell_text
